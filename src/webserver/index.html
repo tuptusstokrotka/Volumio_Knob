@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Volumio Knob</title>
+    <style>
+        @keyframes rainbow {
+            0%, 100% { box-shadow: 0 0 15px 5px #f00; }
+            8% { box-shadow: 0 0 15px 5px #ff7f00; }
+            16% { box-shadow: 0 0 15px 5px #ff0; }
+            25% { box-shadow: 0 0 15px 5px #7fff00; }
+            33% { box-shadow: 0 0 15px 5px #0f0; }
+            41% { box-shadow: 0 0 15px 5px #00ff7f; }
+            50% { box-shadow: 0 0 15px 5px #00ffff; }
+            58% { box-shadow: 0 0 15px 5px #007fff; }
+            66% { box-shadow: 0 0 15px 5px #00f; }
+            75% { box-shadow: 0 0 15px 5px #7f00ff; }
+            83% { box-shadow: 0 0 15px 5px #f0f; }
+            91% { box-shadow: 0 0 15px 5px #ff007f; }
+        }
+        @keyframes rainbow-bg {
+            0%, 100% { background-color: #f00; }
+            8% { background-color: #ff7f00; }
+            16% { background-color: #ff0; }
+            25% { background-color: #7fff00; }
+            33% { background-color: #0f0; }
+            41% { background-color: #00ff7f; }
+            50% { background-color: #00ffff; }
+            58% { background-color: #007fff; }
+            66% { background-color: #00f; }
+            75% { background-color: #7f00ff; }
+            83% { background-color: #f0f; }
+            91% { background-color: #ff007f; }
+        }
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #18191a;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            background: #1e1e1e;
+            padding: 20px;
+            border-radius: 20px;
+            animation: rainbow 5s infinite linear;
+            text-align: center;
+            width: 300px;
+        }
+        input {
+            width: 90%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #555;
+            border-radius: 20px;
+            background: #333;
+            color: white;
+        }
+        button {
+            width: 50%;
+            padding: 10px 20px;
+            margin-bottom: 10px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            animation: rainbow-bg  5s infinite linear;
+            color: white;
+        }
+        #status {
+            margin-top: 10px;
+            font-weight: bold;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Network Configuration</h2>
+        <form id="network-form">
+            <input type="text" name="ssid" placeholder="SSID" id="ssid" required>
+            <input type="password" name="pass" placeholder="Password" id="pass" required>
+            <input type="text" name="ip" placeholder="IP Address" id="ip" required pattern="^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$">
+            <p id="status"></p>
+            <button type="submit">Save</button>
+        </form>
+        <h2>Over the Air Update</h2>
+        <a href="http://volumioknob/update" target="_blank">
+            <button type="button">Update</button>
+        </a>
+
+    </div> 
+
+    <script>
+        // Fetch SSID and IP from ESP when page loads
+        async function loadNetworkConfig() {
+            try {
+                const response = await fetch('/get');
+                if (!response.ok) throw new Error('Failed to fetch network data');
+                const data = await response.json();
+                document.getElementById('ssid').value = data.ssid || '';
+                document.getElementById('ip').value = data.ip || '';
+            } catch (error) {
+                console.error('Error loading network config:', error);
+            }
+        }
+
+        // Handle form submission without reloading
+        document.getElementById('network-form').addEventListener('submit', async function(event) {
+            event.preventDefault(); // Prevent default form submission
+
+            const formData = {
+                ssid: document.getElementById('ssid').value,
+                pass: document.getElementById('pass').value,
+                ip: document.getElementById('ip').value
+            };
+
+            try {
+                const response = await fetch('/post', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+
+                const statusText = document.getElementById('status');
+                statusText.style.display = 'block';
+
+                if (response.ok) {
+                    statusText.innerText = '✅ Settings saved successfully!';
+                    statusText.style.color = 'green';
+                } else {
+                    statusText.innerText = '❌ Failed to save settings!';
+                    statusText.style.color = 'red';
+                }
+            } catch (error) {
+                console.error('Error saving settings:', error);
+                const statusText = document.getElementById('status');
+                statusText.innerText = '❌ Error connecting to server!';
+                statusText.style.color = 'red';
+                statusText.style.display = 'block';
+            }
+        });
+
+        // Load network config on page load
+        window.onload = loadNetworkConfig;
+    </script>
+</body>
+</html>
