@@ -1,5 +1,6 @@
 #pragma once
 
+#include "dev_tools.h"
 #include "lvgl.h"
 #include "styles/styles.h"
 #include "widgets/popup.h"
@@ -18,8 +19,8 @@ class Dashboard {
     // Labels
     lv_obj_t* trackTitle;
     lv_obj_t* trackArtist;
-    lv_obj_t* trackSamplerate;  // lv_obj_t *trackBitdepth; // Combined with samplerate
-    lv_obj_t* trackSeek;        // lv_obj_t *trackDuration; // Combined with seek
+    lv_obj_t* trackSamplerate;
+    lv_obj_t* trackSeek;
 
     // Player Icons
     lv_obj_t* playerIcon;
@@ -32,25 +33,17 @@ class Dashboard {
 
     // Popup
 
-    // Target value for animation
-    int target_arc_value = 0;
-
     // Animation execution callback - updates arc value during animation
     static void arc_anim_exec_cb(void * var, int32_t v) {
-        // Get arc object
         lv_obj_t * arc = static_cast<lv_obj_t*>(var);
         lv_arc_set_value(arc, v);
     }
 
     // Animate arc to a specific value
     void UpdateArc(int value) {
-        // Store target value
-        target_arc_value = value;
-
-        // Get current value
+        static int target_arc_value = value;
         int32_t current_value = lv_arc_get_value(this->arc);
 
-        // Update if there's a difference
         if (current_value == value)
             return;
 
@@ -67,6 +60,49 @@ class Dashboard {
             lv_arc_set_value(this->arc, value);
         #endif
     }
+
+    static void OnPlayIconClick(lv_event_t * e) {
+        Dashboard * dashboard = static_cast<Dashboard*>(lv_event_get_user_data(e));
+        if (dashboard == nullptr) return;
+
+        DEBUG_PRINTLN("[Dashboard] Play icon clicked");
+    }
+
+    static void OnPauseIconClick(lv_event_t * e) {
+        Dashboard * dashboard = static_cast<Dashboard*>(lv_event_get_user_data(e));
+        if (dashboard == nullptr) return;
+
+        DEBUG_PRINTLN("[Dashboard] Pause icon clicked");
+    }
+
+    static void OnNextIconClick(lv_event_t * e) {
+        Dashboard * dashboard = static_cast<Dashboard*>(lv_event_get_user_data(e));
+        if (dashboard == nullptr) return;
+
+        DEBUG_PRINTLN("[Dashboard] Next icon clicked");
+    }
+
+    static void OnPrevIconClick(lv_event_t * e) {
+        Dashboard * dashboard = static_cast<Dashboard*>(lv_event_get_user_data(e));
+        if (dashboard == nullptr) return;
+
+        DEBUG_PRINTLN("[Dashboard] Prev icon clicked");
+    }
+
+    static void OnRepeatIconClick(lv_event_t * e) {
+        Dashboard * dashboard = static_cast<Dashboard*>(lv_event_get_user_data(e));
+        if (dashboard == nullptr) return;
+
+        DEBUG_PRINTLN("[Dashboard] Repeat icon clicked");
+    }
+
+    static void OnShuffleIconClick(lv_event_t * e) {
+        Dashboard * dashboard = static_cast<Dashboard*>(lv_event_get_user_data(e));
+        if (dashboard == nullptr) return;
+
+        DEBUG_PRINTLN("[Dashboard] Shuffle icon clicked");
+    }
+
 public:
     lvgl_popup* popup;
 
@@ -79,7 +115,7 @@ public:
         static lv_style_t knob_style;
         lv_style_init(&knob_style);
         lv_style_set_radius(&knob_style, LV_RADIUS_CIRCLE);
-        lv_style_set_width(&knob_style, 8); // Required to show knob
+        lv_style_set_width(&knob_style, 8);
         lv_style_set_bg_color(&knob_style, ARC_KNOB_COLOR);
 
         // Create arc
@@ -89,13 +125,12 @@ public:
         lv_obj_set_size(arc, 225, 225);
         lv_obj_set_style_arc_color(arc, ARC_BG_COLOR, LV_PART_MAIN);
         lv_obj_set_style_arc_color(arc, ACCENT_COLOR, LV_PART_INDICATOR);
+        lv_obj_set_style_bg_opa(arc, LV_OPA_TRANSP, LV_PART_MAIN);
+        lv_obj_set_style_clip_corner(arc, true, LV_PART_MAIN);
         lv_arc_set_rotation(arc, 270);
         lv_arc_set_bg_angles(arc, 180+55, 180-55);
         lv_arc_set_mode(arc, LV_ARC_MODE_NORMAL);
         lv_arc_set_range(arc, 0, 100);
-
-        lv_obj_set_style_bg_opa(arc, LV_OPA_TRANSP, LV_PART_MAIN);
-        lv_obj_set_style_clip_corner(arc, true, LV_PART_MAIN);
 
         // Create battery icon
         batteryIcon = lv_label_create(screen);
@@ -134,6 +169,8 @@ public:
         lv_obj_set_style_text_color(playIcon, TEXT_COLOR, LV_PART_MAIN);
         lv_obj_set_style_text_font(playIcon, BIG_ICON_FONT, LV_PART_MAIN);
         lv_label_set_text(playIcon, LV_SYMBOL_PLAY);
+        lv_obj_add_flag(playIcon, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_add_event_cb(playIcon, OnPlayIconClick, LV_EVENT_CLICKED, this);
 
         // Create previous icon
         prevIcon = lv_label_create(screen);
@@ -141,6 +178,8 @@ public:
         lv_obj_set_style_text_color(prevIcon, TEXT_COLOR, LV_PART_MAIN);
         lv_obj_set_style_text_font(prevIcon, SMALL_ICON_FONT, LV_PART_MAIN);
         lv_label_set_text(prevIcon, LV_SYMBOL_PREV);
+        lv_obj_add_flag(prevIcon, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_add_event_cb(prevIcon, OnPrevIconClick, LV_EVENT_CLICKED, this);
 
         // Create next icon
         nextIcon = lv_label_create(screen);
@@ -148,6 +187,8 @@ public:
         lv_obj_set_style_text_color(nextIcon, TEXT_COLOR, LV_PART_MAIN);
         lv_obj_set_style_text_font(nextIcon, SMALL_ICON_FONT, LV_PART_MAIN);
         lv_label_set_text(nextIcon, LV_SYMBOL_NEXT);
+        lv_obj_add_flag(nextIcon, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_add_event_cb(nextIcon, OnNextIconClick, LV_EVENT_CLICKED, this);
 
 
         // Create track samplerate label
@@ -174,7 +215,8 @@ public:
         lv_obj_set_style_text_color(repeatIcon, TEXT_COLOR, LV_PART_MAIN);
         lv_obj_set_style_text_font(repeatIcon, SMALL_ICON_FONT, LV_PART_MAIN);
         lv_label_set_text(repeatIcon, LV_SYMBOL_REFRESH);
-        lv_obj_add_state(repeatIcon, LV_STATE_DISABLED);
+        lv_obj_add_flag(repeatIcon, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_add_event_cb(repeatIcon, OnRepeatIconClick, LV_EVENT_CLICKED, this);
 
         // Create shuffle icon
         shuffleIcon = lv_label_create(screen);
@@ -182,7 +224,8 @@ public:
         lv_obj_set_style_text_color(shuffleIcon, TEXT_COLOR, LV_PART_MAIN);
         lv_obj_set_style_text_font(shuffleIcon, SMALL_ICON_FONT, LV_PART_MAIN);
         lv_label_set_text(shuffleIcon, LV_SYMBOL_SHUFFLE);
-        lv_obj_add_state(shuffleIcon, LV_STATE_DISABLED);
+        lv_obj_add_flag(shuffleIcon, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_add_event_cb(shuffleIcon, OnShuffleIconClick, LV_EVENT_CLICKED, this);
 
         // Create player icon (service/format icon)
         playerIcon = lv_label_create(screen);
@@ -209,6 +252,23 @@ public:
     }
 
     lv_obj_t* GetScreen(void){ return this->screen; }
+    lv_obj_t* GetArc(void){ return this->arc; }
+
+    // Volumio event handlers (called from DisplayHandler)
+    void OnArcTouch(int arcValue) {
+        DEBUG_PRINTLN("[Dashboard] Arc touched - Seek to: " << arcValue);
+    }
+
+    void OnVolumeChange(int volumeDiff) {
+        DEBUG_PRINTLN("[Dashboard] Volume change: " << (volumeDiff > 0 ? "+" : "") << volumeDiff);
+
+        if (popup == nullptr)
+            return;
+
+        std::string Title = "Volume";
+        std::string Icon = (volumeDiff > 0) ? LV_SYMBOL_VOLUME_MAX : LV_SYMBOL_VOLUME_MID;
+        popup->ShowPopup(Title, Icon, 1000);
+    }
 
     // Progress Bar - Arc
     void SetArcValue(int value, int max){
@@ -234,7 +294,6 @@ public:
             lv_obj_set_style_text_color(this->batteryIcon, lv_color_make(0xFF, 0x00, 0x00), LV_PART_MAIN);
             lv_label_set_text(this->batteryIcon, LV_SYMBOL_BATTERY_EMPTY);
         }
-
     }
 
     // Track Info

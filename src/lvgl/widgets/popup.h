@@ -123,6 +123,12 @@ public:
         lv_label_set_text(this->title_label, title.c_str());
         lv_label_set_text(this->content_label, content.c_str());
 
+        // If popup is already visible, do not animate
+        if(this->is_visible){
+            start_timeout_timer(); // Restart timeout timer
+            return;
+        }
+
         // Show widget
         lv_obj_clear_flag(this->popup, LV_OBJ_FLAG_HIDDEN);
         lv_obj_align(this->popup, LV_ALIGN_CENTER, 0, 0);

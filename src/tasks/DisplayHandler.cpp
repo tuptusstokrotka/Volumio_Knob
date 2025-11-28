@@ -1,11 +1,19 @@
 #include "DisplayHandler.h"
 #include "esp_heap_caps.h"
 #include "dev_tools.h"
-#include "lvgl/styles/styles.h"
+#include "../lvgl/styles/styles.h"
 
 DisplayHandler::DisplayHandler(){
     lcd.init();
     lcd.setRotation(TFT_ROTATION);
+
+    touch.init();
+    vTaskDelay(pdMS_TO_TICKS(10));
+
+    // Initialize encoder button pin
+    gpio_reset_pin(BUTTON_PIN);
+    gpio_set_direction(BUTTON_PIN, GPIO_MODE_INPUT);
+    gpio_set_pull_mode(BUTTON_PIN, GPIO_PULLUP_ONLY);
 
     draw_buf = (lv_color_t*)malloc(DRAW_BUF_SIZE/BUF_DIVIDER);
     if(draw_buf == nullptr) {
@@ -16,6 +24,7 @@ DisplayHandler::DisplayHandler(){
     lv_init();
     lv_tick_set_cb(DisplayHandler::my_tick);
 
+    // Setup LVGL display
     lv_display_t *lvDisplay = lv_display_create(LCD_WIDTH, LCD_HEIGHT);
     lv_display_set_color_format(lvDisplay, LV_COLOR_FORMAT_RGB565);
     lv_display_set_flush_cb(lvDisplay, DisplayHandler::DisplayFlush);
@@ -23,7 +32,73 @@ DisplayHandler::DisplayHandler(){
     lv_display_set_rotation(lvDisplay, TFT_ROTATION);
     lv_display_set_buffers(lvDisplay, draw_buf, NULL, DRAW_BUF_SIZE/BUF_DIVIDER, LV_DISPLAY_RENDER_MODE_PARTIAL);
 
+    // Setup LVGL touch
+    lv_indev_t* touch_indev = lv_indev_create();
+    lv_indev_set_type(touch_indev, LV_INDEV_TYPE_POINTER);
+    lv_indev_set_read_cb(touch_indev, TouchEvent);
+    lv_indev_set_user_data(touch_indev, this);
+
+    // Setup LVGL encoder
+    lv_indev_t* encoder_indev = lv_indev_create();
+    lv_indev_set_type(encoder_indev, LV_INDEV_TYPE_ENCODER);
+    lv_indev_set_read_cb(encoder_indev, EncoderEvent);
+    lv_indev_set_user_data(encoder_indev, this);
+
     semaphore = xSemaphoreCreateMutex();
+}
+
+void DisplayHandler::TouchEvent(lv_indev_t *indev, lv_indev_data_t *data) {
+    DisplayHandler* instance = static_cast<DisplayHandler*>(lv_indev_get_user_data(indev));
+    if (instance == nullptr) {
+        data->state = LV_INDEV_STATE_RELEASED;
+        return;
+    }
+
+    instance->touch.readPos();
+    FT3267::TouchPoint_t point = instance->touch.getTouchPointBuffer();
+
+    if (point.touch_num > 0 && point.x >= 0 && point.y >= 0) {
+        data->state = LV_INDEV_STATE_PRESSED;
+        data->point.x = point.x;
+        data->point.y = point.y;
+    } else {
+        data->state = LV_INDEV_STATE_RELEASED;
+    }
+}
+
+void DisplayHandler::EncoderEvent(lv_indev_t *indev, lv_indev_data_t *data) {
+    DisplayHandler* instance = static_cast<DisplayHandler*>(lv_indev_get_user_data(indev));
+    if (instance == nullptr) {
+        data->enc_diff = 0;
+        data->state = LV_INDEV_STATE_RELEASED;
+        return;
+    }
+
+    // Get encoder difference
+    int32_t diff = instance->encoder.getDiff();
+    data->enc_diff = diff;
+
+    // Handle volume control when encoder rotates (not when arc is focused)
+    if (diff != 0 && instance->dashboard != nullptr) {
+        // Call volume change event
+        instance->dashboard->OnVolumeChange(diff);
+    }
+
+    // Debug: log encoder movement
+    #if ENCODER_VERBOSE == true
+    static int32_t last_logged_diff = 0;
+    if (diff != 0 && diff != last_logged_diff) {
+        DEBUG_PRINTLN("[Encoder] Diff: " << diff << ", Position: " << instance->encoder.getPosition());
+        last_logged_diff = diff;
+    }
+    #endif
+
+    // Read button state (using BUTTON_PIN)
+    if (gpio_get_level(BUTTON_PIN) == 0) { // Assuming active low
+        data->state = LV_INDEV_STATE_PRESSED;
+    } else {
+        data->state = LV_INDEV_STATE_RELEASED;
+    }
 }
 
 DisplayHandler::~DisplayHandler(){
@@ -72,7 +147,7 @@ void DisplayHandler::TaskEntry(void* param) {
     lv_scr_load(instance->dashboard->GetScreen());
 
     while (true) {
-        instance->TestGUI();
+        // instance->TestGUI();
 
         if(xSemaphoreTake(instance->semaphore, 10) == pdTRUE){
             lv_timer_handler();

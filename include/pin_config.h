@@ -2,11 +2,12 @@
 #define PIN_CONFIG_H
 
 #include "pins_arduino.h"
+#include "hal/gpio_types.h"
 
-#define BUTTON_PIN     G42
-#define BUZZER_PIN     G3
+#define BUTTON_PIN     GPIO_NUM_42
+#define BUZZER_PIN     GPIO_NUM_3
 
-#define ENCODER_A      G41
-#define ENCODER_B      G40
+#define ENCODER_A      GPIO_NUM_41
+#define ENCODER_B      GPIO_NUM_40
 
 #endif // PIN_CONFIG_H

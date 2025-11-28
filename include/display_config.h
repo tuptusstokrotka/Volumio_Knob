@@ -45,7 +45,7 @@
 // BUFFER = DRAW_BUF_SIZE / BUF_DIVIDER
 
 #define TFT_ROTATION    LV_DISPLAY_ROTATION_0
-#define DISPLAY_FPS     60      // Display task tick rate
+#define DISPLAY_FPS     200      // Display task tick rate
 #define SPLASH_SCREEN_TIME 1000 // Splash screen time
 
 #endif // DISPLAY_CONFIG_H

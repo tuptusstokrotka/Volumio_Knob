@@ -206,7 +206,13 @@ namespace FT3267
                     .clk_flags = 0,
                 };
                 i2c_param_config(_cfg.i2c_port, &i2c_config);
-                i2c_driver_install(_cfg.i2c_port, I2C_MODE_MASTER, 0, 0, 0);
+
+                // Install I2C driver (ignore error if already installed)
+                esp_err_t ret = i2c_driver_install(_cfg.i2c_port, I2C_MODE_MASTER, 0, 0, 0);
+                if (ret != ESP_OK && ret != ESP_ERR_INVALID_STATE) {
+                    ESP_LOGE(TAG, "Failed to install I2C driver: %s", esp_err_to_name(ret));
+                    return false;
+                }
 
                 /* Interrupt pin */
                 gpio_reset_pin(static_cast<gpio_num_t>(TOUCH_IRQ));
