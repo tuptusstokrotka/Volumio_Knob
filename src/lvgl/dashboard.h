@@ -1,11 +1,9 @@
 #pragma once
 
 #include "lvgl.h"
-#include "styles.h"
+#include "styles/styles.h"
+#include "widgets/popup.h"
 #include <string>
-
-#define ANIMATION_ENABLE
-#define ANIMATION_DURATION 200 // [ms]
 
 class Dashboard {
     lv_color_t accentColor = ACCENT_COLOR;
@@ -32,6 +30,8 @@ class Dashboard {
     lv_obj_t* repeatIcon;
     lv_obj_t* shuffleIcon;
 
+    // Popup
+
     // Target value for animation
     int target_arc_value = 0;
 
@@ -54,14 +54,13 @@ class Dashboard {
         if (current_value == value)
             return;
 
-        #ifdef ANIMATION_ENABLE
-            // Create animation
+        #ifdef ARC_ANIMATION_ENABLE
             lv_anim_t a;
             lv_anim_init(&a);
             lv_anim_set_var(&a, this->arc);
             lv_anim_set_exec_cb(&a, (lv_anim_exec_xcb_t)arc_anim_exec_cb);
-            lv_anim_set_duration(&a, ANIMATION_DURATION);
-            lv_anim_set_path_cb(&a, lv_anim_path_ease_in_out);
+            lv_anim_set_duration(&a, ARC_ANIMATION_DURATION);
+            lv_anim_set_path_cb(&a, lv_anim_path_linear);
             lv_anim_set_values(&a, current_value, value);
             lv_anim_start(&a);
         #else
@@ -69,6 +68,8 @@ class Dashboard {
         #endif
     }
 public:
+    lvgl_popup* popup;
+
     Dashboard(){
         // Create screen
         screen = lv_obj_create(NULL);
@@ -79,20 +80,22 @@ public:
         lv_style_init(&knob_style);
         lv_style_set_radius(&knob_style, LV_RADIUS_CIRCLE);
         lv_style_set_width(&knob_style, 8); // Required to show knob
-        lv_style_set_bg_color(&knob_style, lv_color_make(0xFF, 0xFF, 0xFF));
+        lv_style_set_bg_color(&knob_style, ARC_KNOB_COLOR);
 
         // Create arc
         arc = lv_arc_create(screen);
         lv_obj_add_style(arc, &knob_style, LV_PART_KNOB);
         lv_obj_align(arc, LV_ALIGN_CENTER, 0, 0);
         lv_obj_set_size(arc, 225, 225);
-        lv_obj_set_style_arc_color(arc, lv_color_make(0x20, 0x20, 0x20), LV_PART_MAIN);
+        lv_obj_set_style_arc_color(arc, ARC_BG_COLOR, LV_PART_MAIN);
         lv_obj_set_style_arc_color(arc, ACCENT_COLOR, LV_PART_INDICATOR);
         lv_arc_set_rotation(arc, 270);
-        lv_arc_set_bg_angles(arc, 180+50, 180-50);
+        lv_arc_set_bg_angles(arc, 180+55, 180-55);
         lv_arc_set_mode(arc, LV_ARC_MODE_NORMAL);
         lv_arc_set_range(arc, 0, 100);
-        lv_arc_set_value(arc, 25);
+
+        lv_obj_set_style_bg_opa(arc, LV_OPA_TRANSP, LV_PART_MAIN);
+        lv_obj_set_style_clip_corner(arc, true, LV_PART_MAIN);
 
         // Create battery icon
         batteryIcon = lv_label_create(screen);
@@ -131,26 +134,19 @@ public:
         lv_obj_set_style_text_color(playIcon, TEXT_COLOR, LV_PART_MAIN);
         lv_obj_set_style_text_font(playIcon, BIG_ICON_FONT, LV_PART_MAIN);
         lv_label_set_text(playIcon, LV_SYMBOL_PLAY);
-        // Create pause icon
-        pauseIcon = lv_label_create(screen);
-        lv_obj_align(pauseIcon, LV_ALIGN_CENTER, 0, 0);
-        lv_obj_set_style_text_color(pauseIcon, TEXT_COLOR, LV_PART_MAIN);
-        lv_obj_set_style_text_font(pauseIcon, BIG_ICON_FONT, LV_PART_MAIN);
-        lv_label_set_text(pauseIcon, LV_SYMBOL_PAUSE);
-        lv_obj_add_flag(pauseIcon, LV_OBJ_FLAG_HIDDEN);
 
         // Create previous icon
         prevIcon = lv_label_create(screen);
         lv_obj_align(prevIcon, LV_ALIGN_CENTER, -60, 0);
         lv_obj_set_style_text_color(prevIcon, TEXT_COLOR, LV_PART_MAIN);
-        lv_obj_set_style_text_font(prevIcon, BIG_ICON_FONT, LV_PART_MAIN);
+        lv_obj_set_style_text_font(prevIcon, SMALL_ICON_FONT, LV_PART_MAIN);
         lv_label_set_text(prevIcon, LV_SYMBOL_PREV);
 
         // Create next icon
         nextIcon = lv_label_create(screen);
         lv_obj_align(nextIcon, LV_ALIGN_CENTER, 60, 0);
         lv_obj_set_style_text_color(nextIcon, TEXT_COLOR, LV_PART_MAIN);
-        lv_obj_set_style_text_font(nextIcon, BIG_ICON_FONT, LV_PART_MAIN);
+        lv_obj_set_style_text_font(nextIcon, SMALL_ICON_FONT, LV_PART_MAIN);
         lv_label_set_text(nextIcon, LV_SYMBOL_NEXT);
 
 
@@ -194,9 +190,17 @@ public:
         lv_obj_set_style_text_color(playerIcon, ACCENT_COLOR, LV_PART_MAIN);
         lv_obj_set_style_text_font(playerIcon, SMALL_ICON_FONT, LV_PART_MAIN);
         lv_label_set_text(playerIcon, LV_SYMBOL_AUDIO);
+
+        // Create popup widget
+        popup = new lvgl_popup(screen);
+        lv_obj_align(popup->GetWidget(), LV_ALIGN_CENTER, 0, 0);
     }
 
     ~Dashboard(){
+        if (popup) {
+            delete popup;
+            popup = nullptr;
+        }
         if (this->screen) {
             lv_obj_del(this->screen);
             this->screen = nullptr;
@@ -206,17 +210,31 @@ public:
 
     lv_obj_t* GetScreen(void){ return this->screen; }
 
-    // Arc
-    void SetRange(int min, int max){
+    // Progress Bar - Arc
+    void SetArcValue(int value, int max){
         if(this->arc == nullptr)
             return;
-        lv_arc_set_range(this->arc, min, max);
+        lv_arc_set_range(this->arc, 0, max);
+        UpdateArc(value);
     }
 
-    void SetArcValue(int value){
-        if(this->arc == nullptr)
+    void SetBatteryValue(int value){
+        if(this->batteryIcon == nullptr)
             return;
-        UpdateArc(value);
+        lv_obj_set_style_text_color(this->batteryIcon, TEXT_COLOR, LV_PART_MAIN);
+        if(value >= 80)
+            lv_label_set_text(this->batteryIcon, LV_SYMBOL_BATTERY_FULL);
+        else if(value >= 60)
+            lv_label_set_text(this->batteryIcon, LV_SYMBOL_BATTERY_3);
+        else if(value >= 40)
+            lv_label_set_text(this->batteryIcon, LV_SYMBOL_BATTERY_2);
+        else if(value >= 20)
+            lv_label_set_text(this->batteryIcon, LV_SYMBOL_BATTERY_1);
+        else{
+            lv_obj_set_style_text_color(this->batteryIcon, lv_color_make(0xFF, 0x00, 0x00), LV_PART_MAIN);
+            lv_label_set_text(this->batteryIcon, LV_SYMBOL_BATTERY_EMPTY);
+        }
+
     }
 
     // Track Info
@@ -234,11 +252,6 @@ public:
         if(this->trackSamplerate == nullptr)
             return;
         lv_label_set_text(this->trackSamplerate, samplerate);
-    }
-    void SetTrackSeek(const char *seek){
-        if(this->trackSeek == nullptr)
-            return;
-        lv_label_set_text(this->trackSeek, seek);
     }
     void SetTrackSeek(int seek, int duration = 0){
         if(this->trackSeek == nullptr)
@@ -269,45 +282,23 @@ public:
             return;
         lv_label_set_text(this->playerIcon, icon);
     }
-    void SetPlayIconVisible(bool visible){
+    void SetStatus(bool isPlaying, bool isPaused, bool isStopped){
         if(this->playIcon == nullptr)
             return;
-        if(visible)
-            lv_obj_clear_flag(this->playIcon, LV_OBJ_FLAG_HIDDEN);
-        else
-            lv_obj_add_flag(this->playIcon, LV_OBJ_FLAG_HIDDEN);
-    }
-    void SetPauseIconVisible(bool visible){
-        if(this->pauseIcon == nullptr)
-            return;
-        if(visible)
-            lv_obj_clear_flag(this->pauseIcon, LV_OBJ_FLAG_HIDDEN);
-        else
-            lv_obj_add_flag(this->pauseIcon, LV_OBJ_FLAG_HIDDEN);
-    }
-    void SetNextIconVisible(bool visible){
-        if(this->nextIcon == nullptr)
-            return;
-        if(visible)
-            lv_obj_clear_flag(this->nextIcon, LV_OBJ_FLAG_HIDDEN);
-        else
-            lv_obj_add_flag(this->nextIcon, LV_OBJ_FLAG_HIDDEN);
-    }
-    void SetPrevIconVisible(bool visible){
-        if(this->prevIcon == nullptr)
-            return;
-        if(visible)
-            lv_obj_clear_flag(this->prevIcon, LV_OBJ_FLAG_HIDDEN);
-        else
-            lv_obj_add_flag(this->prevIcon, LV_OBJ_FLAG_HIDDEN);
+        if(isPlaying)
+            lv_label_set_text(this->playIcon, LV_SYMBOL_PLAY);
+        else if(isPaused)
+            lv_label_set_text(this->playIcon, LV_SYMBOL_PAUSE);
+        else if(isStopped)
+            lv_label_set_text(this->playIcon, LV_SYMBOL_STOP);
     }
     void SetRepeatIconState(bool enabled){
         if(this->repeatIcon == nullptr)
             return;
         if(enabled)
-            lv_obj_clear_state(this->repeatIcon, LV_STATE_DISABLED);
+            lv_obj_set_style_text_color(this->repeatIcon, TEXT_COLOR, LV_PART_MAIN);
         else
-            lv_obj_add_state(this->repeatIcon, LV_STATE_DISABLED);
+            lv_obj_set_style_text_color(this->repeatIcon, TEXT_COLOR, LV_PART_MAIN);
     }
     void SetShuffleIconState(bool enabled){
         if(this->shuffleIcon == nullptr)

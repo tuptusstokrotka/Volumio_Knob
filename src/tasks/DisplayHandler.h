@@ -30,6 +30,8 @@ private:
      */
     static void TaskEntry(void* param);
 
+    void TestGUI(void);
+
 public:
     DisplayHandler();
     ~DisplayHandler();

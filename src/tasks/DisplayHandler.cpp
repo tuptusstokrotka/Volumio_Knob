@@ -1,7 +1,7 @@
 #include "DisplayHandler.h"
 #include "esp_heap_caps.h"
 #include "dev_tools.h"
-#include "lvgl/styles.h"
+#include "lvgl/styles/styles.h"
 
 DisplayHandler::DisplayHandler(){
     lcd.init();
@@ -9,23 +9,18 @@ DisplayHandler::DisplayHandler(){
 
     draw_buf = (lv_color_t*)malloc(DRAW_BUF_SIZE/BUF_DIVIDER);
     if(draw_buf == nullptr) {
-
         return;
     }
 
+    // LVGL setup
     lv_init();
     lv_tick_set_cb(DisplayHandler::my_tick);
 
-    // LVGL setup - improved configuration
     lv_display_t *lvDisplay = lv_display_create(LCD_WIDTH, LCD_HEIGHT);
     lv_display_set_color_format(lvDisplay, LV_COLOR_FORMAT_RGB565);
     lv_display_set_flush_cb(lvDisplay, DisplayHandler::DisplayFlush);
-    lv_display_set_user_data(lvDisplay, this);  // Pass this instance to the display
-
-    // Set rotation to match hardware
+    lv_display_set_user_data(lvDisplay, this);
     lv_display_set_rotation(lvDisplay, TFT_ROTATION);
-
-    // Configure buffers - ensure proper alignment and size
     lv_display_set_buffers(lvDisplay, draw_buf, NULL, DRAW_BUF_SIZE/BUF_DIVIDER, LV_DISPLAY_RENDER_MODE_PARTIAL);
 
     semaphore = xSemaphoreCreateMutex();
@@ -76,30 +71,8 @@ void DisplayHandler::TaskEntry(void* param) {
     instance->dashboard = new Dashboard();
     lv_scr_load(instance->dashboard->GetScreen());
 
-    int arcValue = 0;
-    TickType_t last_tick = xTaskGetTickCount();
-
     while (true) {
-        TickType_t now = xTaskGetTickCount();
-        TickType_t elapsed = now - last_tick;
-        if(elapsed >= 1000){
-            last_tick = now;
-            instance->dashboard->SetArcValue(arcValue % 100);  // Arc range is 0-100
-            instance->dashboard->SetTrackSeek(arcValue, 100);
-            arcValue += 15;
-            arcValue %= 100;
-
-            // Change accent color based on arcValue range
-            if(arcValue < 25){
-                instance->dashboard->SetAccentColor(SPOTIFY_GREEN);
-            } else if(arcValue < 50){
-                instance->dashboard->SetAccentColor(YOUTUBE_RED);
-            } else if(arcValue < 75){
-                instance->dashboard->SetAccentColor(TIDAL_BLUE);
-            } else {
-                instance->dashboard->SetAccentColor(ACCENT_COLOR);
-            }
-        }
+        instance->TestGUI();
 
         if(xSemaphoreTake(instance->semaphore, 10) == pdTRUE){
             lv_timer_handler();
@@ -107,5 +80,42 @@ void DisplayHandler::TaskEntry(void* param) {
         }
         vTaskDelay(1000 / DISPLAY_FPS);
 
+    }
+}
+
+void DisplayHandler::TestGUI(void){
+    static int arcValue = 10;
+    static int maxValue = 20;
+    static TickType_t last_tick = xTaskGetTickCount();
+    TickType_t now = xTaskGetTickCount();
+
+    if(now - last_tick >= 1000 && now > 2000){
+        last_tick = now;
+
+        dashboard->SetArcValue(arcValue, maxValue);
+        dashboard->SetTrackSeek(arcValue, maxValue);
+
+        // Change accent color based on arcValue range
+        if(arcValue < maxValue / 4){
+            dashboard->SetAccentColor(SPOTIFY_GREEN);
+        } else if(arcValue < maxValue / 2){
+            dashboard->SetAccentColor(YOUTUBE_RED);
+        } else if(arcValue < maxValue * 3 / 4){
+            dashboard->SetAccentColor(TIDAL_BLUE);
+        } else {
+            dashboard->SetAccentColor(ACCENT_COLOR);
+        }
+
+        dashboard->SetStatus(arcValue < maxValue/3, arcValue < maxValue/3*2, arcValue < maxValue/3*3);
+        dashboard->SetBatteryValue(map(arcValue, 0, maxValue, 0, 100));
+
+        if(arcValue == 5)
+            dashboard->popup->ShowPopup("Popup 3s", "This is a popup that will show for 3 seconds", 3000);
+        if(arcValue == 12)
+            dashboard->popup->ShowPopup("Popup Hard", "This is a popup that will stay until dismissed");
+        if(arcValue == maxValue-1)
+            dashboard->popup->HidePopup();
+
+        ++arcValue %= maxValue;
     }
 }
