@@ -4,14 +4,16 @@
 #include "main.h"
 
 void setup() {
-    // ConfigManager::Initialize();
+    std::string ssid = STA_SSID;
+    std::string pass = STA_PASS;
+    std::string ip = VOLUMIO_IP;
+
+    ConfigManager::getInstance().begin(ssid, pass, ip);
 
     display = new DisplayHandler();
-    // board   = new BoardHandler(display);
-    // ota     = new OtaHandler();
+    wifi = new WiFiHandler(ssid, pass);
 
     display->RunTask();
-    // board->RunTask();
 }
 
 void loop() {

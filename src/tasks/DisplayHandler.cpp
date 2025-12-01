@@ -179,12 +179,24 @@ void DisplayHandler::TestGUI(void){
         dashboard->SetBatteryValue(map(arcValue, 0, maxValue, 0, 100));
 
         if(arcValue == 5)
-            dashboard->ShowPopup("Popup 3s", "This is a popup that will show for 3 seconds", 3000);
+            ShowPopup("Popup 3s", "This is a popup that will show for 3 seconds", 3000);
         if(arcValue == 12)
-            dashboard->ShowPopup("Popup Hard", "This is a popup that will stay until dismissed");
+            ShowPopup("Popup Hard", "This is a popup that will stay until dismissed");
         if(arcValue == maxValue-1)
-            dashboard->HidePopup();
+            HidePopup();
 
         ++arcValue %= maxValue;
+    }
+}
+
+void DisplayHandler::ShowPopup(const char *title, const char *content, TickType_t duration) {
+    if (dashboard != nullptr) {
+        dashboard->ShowPopup(title, content, duration);
+    }
+}
+
+void DisplayHandler::HidePopup(void) {
+    if (dashboard != nullptr) {
+        dashboard->HidePopup();
     }
 }

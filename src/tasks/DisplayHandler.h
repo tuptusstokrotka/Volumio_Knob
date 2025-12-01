@@ -53,6 +53,10 @@ public:
 
     // Setup Task - called from the main program
     void RunTask(void);
+
+    // Show popup notification
+    void ShowPopup(const char *title, const char *content, TickType_t duration = 0);
+    void HidePopup(void);
 };
 
 #endif

@@ -6,12 +6,14 @@
 
 // Developer Tools and Debugging
 #include "dev_tools.h"
+#include "wifi_config.h"
 
 // Tasks
 #include "tasks/DisplayHandler.h"
-// #include "tasks/BoardHandler.h"
-// #include "tasks/OtaHandler.h"
+#include "tasks/WiFiHandler.h"
+
+// Config
+#include "config/ConfigManager.h"
 
 DisplayHandler* display = nullptr;
-// BoardHandler*   board   = nullptr;
-// OtaHandler*     ota     = nullptr;
+WiFiHandler* wifi = nullptr;
