@@ -179,11 +179,11 @@ void DisplayHandler::TestGUI(void){
         dashboard->SetBatteryValue(map(arcValue, 0, maxValue, 0, 100));
 
         if(arcValue == 5)
-            dashboard->popup->ShowPopup("Popup 3s", "This is a popup that will show for 3 seconds", 3000);
+            dashboard->ShowPopup("Popup 3s", "This is a popup that will show for 3 seconds", 3000);
         if(arcValue == 12)
-            dashboard->popup->ShowPopup("Popup Hard", "This is a popup that will stay until dismissed");
+            dashboard->ShowPopup("Popup Hard", "This is a popup that will stay until dismissed");
         if(arcValue == maxValue-1)
-            dashboard->popup->HidePopup();
+            dashboard->HidePopup();
 
         ++arcValue %= maxValue;
     }

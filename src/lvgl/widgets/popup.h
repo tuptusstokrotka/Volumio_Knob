@@ -40,7 +40,7 @@ private:
     static void timeout_timer_cb(lv_timer_t * timer) {
         lvgl_popup *instance = static_cast<lvgl_popup*>(lv_timer_get_user_data(timer));
         if (instance) {
-            instance->HidePopup();
+            instance->Hide();
         }
     }
 
@@ -110,7 +110,7 @@ public:
         return this->popup;
     }
 
-    void ShowPopup(std::string title, std::string content, uint32_t timeout_ms = 0) {
+    void Show(std::string title, std::string content, TickType_t timeout_ms) {
         if(this->popup == nullptr)
             return;
 
@@ -153,7 +153,7 @@ public:
         start_timeout_timer();
     }
 
-    void HidePopup(void) {
+    void Hide(void) {
         if(this->popup == nullptr || !is_visible)
             return;
 

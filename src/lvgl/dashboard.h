@@ -32,14 +32,13 @@ class Dashboard {
     IconButton* shuffleIcon;
 
     // Popup
+    lvgl_popup* popup;
 
-    // Animation execution callback - updates arc value during animation
+
     static void arc_anim_exec_cb(void * var, int32_t v) {
         lv_obj_t * arc = static_cast<lv_obj_t*>(var);
         lv_arc_set_value(arc, v);
     }
-
-    // Animate arc to a specific value
     void UpdateArc(int value) {
         static int target_arc_value = value;
         int32_t current_value = lv_arc_get_value(this->arc);
@@ -61,18 +60,19 @@ class Dashboard {
         #endif
     }
 
+    static void OnArcTouch(lv_event_t * e) {
+        Dashboard * dashboard = static_cast<Dashboard*>(lv_event_get_user_data(e));
+        if (dashboard == nullptr) return;
+
+        int arcValue = lv_arc_get_value(dashboard->arc);
+        DEBUG_PRINTLN("[Dashboard] Arc touched - Seek to: " << arcValue);
+    }
+
     static void OnPlayIconClick(lv_event_t * e) {
         Dashboard * dashboard = static_cast<Dashboard*>(lv_event_get_user_data(e));
         if (dashboard == nullptr) return;
 
         DEBUG_PRINTLN("[Dashboard] Play icon clicked");
-    }
-
-    static void OnPauseIconClick(lv_event_t * e) {
-        Dashboard * dashboard = static_cast<Dashboard*>(lv_event_get_user_data(e));
-        if (dashboard == nullptr) return;
-
-        DEBUG_PRINTLN("[Dashboard] Pause icon clicked");
     }
 
     static void OnNextIconClick(lv_event_t * e) {
@@ -104,8 +104,6 @@ class Dashboard {
     }
 
 public:
-    lvgl_popup* popup;
-
     Dashboard(){
         // Create screen
         screen = lv_obj_create(NULL);
@@ -131,6 +129,7 @@ public:
         lv_arc_set_bg_angles(arc, 180+55, 180-55);
         lv_arc_set_mode(arc, LV_ARC_MODE_NORMAL);
         lv_arc_set_range(arc, 0, 100);
+        lv_obj_add_event_cb(arc, OnArcTouch, LV_EVENT_CLICKED, this);
 
         // Create battery icon
         batteryIcon = lv_label_create(screen);
@@ -162,8 +161,6 @@ public:
         lv_label_set_long_mode(trackArtist, LV_LABEL_LONG_SCROLL_CIRCULAR);
         lv_obj_move_foreground(trackArtist);
 
-
-
     /* MIDDLE */
         // Create play icon
         playIcon = new IconButton(screen);
@@ -186,7 +183,6 @@ public:
         nextIcon->SetCallback(OnNextIconClick, this);
         nextIcon->Align(LV_ALIGN_CENTER, 60, 0);
 
-
         // Create track samplerate label
         trackSamplerate = lv_label_create(screen);
         lv_obj_align(trackSamplerate, LV_ALIGN_CENTER, 0, 35);
@@ -205,18 +201,17 @@ public:
         lv_label_set_text(trackSeek, "0:00 / 3:45");
         lv_obj_move_foreground(trackSeek);
 
-
     /* BOTTOM */
         // Create repeat icon
         repeatIcon = new IconButton(screen);
-        repeatIcon->SetStyle(50, SMALL_ICON_FONT);
+        repeatIcon->SetStyle(45, SMALL_ICON_FONT);
         repeatIcon->SetIcon(LV_SYMBOL_REFRESH);
         repeatIcon->SetCallback(OnRepeatIconClick, this);
         repeatIcon->Align(LV_ALIGN_CENTER, -60, 80);
 
         // Create shuffle icon
         shuffleIcon = new IconButton(screen);
-        shuffleIcon->SetStyle(50, SMALL_ICON_FONT);
+        shuffleIcon->SetStyle(45, SMALL_ICON_FONT);
         shuffleIcon->SetIcon(LV_SYMBOL_SHUFFLE);
         shuffleIcon->SetCallback(OnShuffleIconClick, this);
         shuffleIcon->Align(LV_ALIGN_CENTER, 60, 80);
@@ -269,10 +264,6 @@ public:
     lv_obj_t* GetArc(void){ return this->arc; }
 
     // Volumio event handlers (called from DisplayHandler)
-    void OnArcTouch(int arcValue) {
-        DEBUG_PRINTLN("[Dashboard] Arc touched - Seek to: " << arcValue);
-    }
-
     void OnVolumeChange(int volumeDiff) {
         DEBUG_PRINTLN("[Dashboard] Volume change: " << (volumeDiff > 0 ? "+" : "") << volumeDiff);
 
@@ -281,7 +272,19 @@ public:
 
         std::string Title = "Volume";
         std::string Icon = (volumeDiff > 0) ? LV_SYMBOL_VOLUME_MAX : LV_SYMBOL_VOLUME_MID;
-        popup->ShowPopup(Title, Icon, 1000);
+        popup->Show(Title, Icon, 1000);
+    }
+
+    // Popup
+    void ShowPopup(const char *title, const char *content, TickType_t duration = 0){
+        if(this->popup == nullptr)
+            return;
+        this->popup->Show(title, content, duration);
+    }
+    void HidePopup(void){
+        if(this->popup == nullptr)
+            return;
+        this->popup->Hide();
     }
 
     // Progress Bar - Arc

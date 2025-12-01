@@ -7,7 +7,7 @@
 #include "pin_config.h"
 #include "display_config.h"
 #include "drivers/GC9A01.h"         // LCD Driver
-#include "drivers/FT3267.h"
+#include "drivers/FT3267.h"         // Touch Driver
 #include "../board/Encoder.h"
 
 #include "lv_conf.h"                // LVGL Config
