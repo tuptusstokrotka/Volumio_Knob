@@ -4,23 +4,22 @@
 #include "../lvgl/styles/styles.h"
 
 DisplayHandler::DisplayHandler(){
+    // Display
     lcd.init();
     lcd.setRotation(TFT_ROTATION);
-
     touch.init();
     vTaskDelay(pdMS_TO_TICKS(10));
 
-    // Initialize encoder button pin
+    // Encoder
     gpio_reset_pin(BUTTON_PIN);
     gpio_set_direction(BUTTON_PIN, GPIO_MODE_INPUT);
     gpio_set_pull_mode(BUTTON_PIN, GPIO_PULLUP_ONLY);
 
+    // LVGL setup
     draw_buf = (lv_color_t*)malloc(DRAW_BUF_SIZE/BUF_DIVIDER);
     if(draw_buf == nullptr) {
         return;
     }
-
-    // LVGL setup
     lv_init();
     lv_tick_set_cb(DisplayHandler::my_tick);
 
@@ -74,17 +73,13 @@ void DisplayHandler::EncoderEvent(lv_indev_t *indev, lv_indev_data_t *data) {
         return;
     }
 
-    // Get encoder difference
     int32_t diff = instance->encoder.getDiff();
     data->enc_diff = diff;
 
-    // Handle volume control when encoder rotates (not when arc is focused)
     if (diff != 0 && instance->dashboard != nullptr) {
-        // Call volume change event
         instance->dashboard->OnVolumeChange(diff);
     }
 
-    // Debug: log encoder movement
     #if ENCODER_VERBOSE == true
     static int32_t last_logged_diff = 0;
     if (diff != 0 && diff != last_logged_diff) {
@@ -93,8 +88,7 @@ void DisplayHandler::EncoderEvent(lv_indev_t *indev, lv_indev_data_t *data) {
     }
     #endif
 
-    // Read button state (using BUTTON_PIN)
-    if (gpio_get_level(BUTTON_PIN) == 0) { // Assuming active low
+    if (gpio_get_level(BUTTON_PIN) == 0) {
         data->state = LV_INDEV_STATE_PRESSED;
     } else {
         data->state = LV_INDEV_STATE_RELEASED;
@@ -115,7 +109,6 @@ uint32_t DisplayHandler::my_tick(void) {
 }
 
 void DisplayHandler::DisplayFlush(lv_display_t *display, const lv_area_t *area, unsigned char *data) {
-    // Get the instance from the display user data
     DisplayHandler* instance = static_cast<DisplayHandler*>(lv_display_get_user_data(display));
     if (instance == nullptr) return;
 
@@ -142,7 +135,6 @@ void DisplayHandler::RunTask(void){
 void DisplayHandler::TaskEntry(void* param) {
     DisplayHandler* instance = static_cast<DisplayHandler*>(param);
 
-    // Create dashboard screen
     instance->dashboard = new Dashboard();
     lv_scr_load(instance->dashboard->GetScreen());
 
@@ -170,7 +162,6 @@ void DisplayHandler::TestGUI(void){
         dashboard->SetArcValue(arcValue, maxValue);
         dashboard->SetTrackSeek(arcValue, maxValue);
 
-        // Change accent color based on arcValue range
         if(arcValue < maxValue / 4){
             dashboard->SetAccentColor(SPOTIFY_GREEN);
         } else if(arcValue < maxValue / 2){
@@ -180,6 +171,9 @@ void DisplayHandler::TestGUI(void){
         } else {
             dashboard->SetAccentColor(ACCENT_COLOR);
         }
+
+        dashboard->SetShuffleIconState(arcValue < maxValue/2);
+        dashboard->SetRepeatIconState(arcValue > maxValue/2);
 
         dashboard->SetStatus(arcValue < maxValue/3, arcValue < maxValue/3*2, arcValue < maxValue/3*3);
         dashboard->SetBatteryValue(map(arcValue, 0, maxValue, 0, 100));

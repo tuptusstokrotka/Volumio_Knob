@@ -4,6 +4,7 @@
 #include "lvgl.h"
 #include "styles/styles.h"
 #include "widgets/popup.h"
+#include "widgets/icon_button.h"
 #include <string>
 
 class Dashboard {
@@ -24,12 +25,11 @@ class Dashboard {
 
     // Player Icons
     lv_obj_t* playerIcon;
-    lv_obj_t* playIcon;
-    lv_obj_t* nextIcon;
-    lv_obj_t* pauseIcon;
-    lv_obj_t* prevIcon;
-    lv_obj_t* repeatIcon;
-    lv_obj_t* shuffleIcon;
+    IconButton* playIcon;
+    IconButton* nextIcon;
+    IconButton* prevIcon;
+    IconButton* repeatIcon;
+    IconButton* shuffleIcon;
 
     // Popup
 
@@ -149,6 +149,7 @@ public:
         lv_obj_set_width(trackTitle, 150);
         lv_label_set_text(trackTitle, "Track Title - Long Text to Test the Long Mode");
         lv_label_set_long_mode(trackTitle, LV_LABEL_LONG_SCROLL_CIRCULAR);
+        lv_obj_move_foreground(trackTitle);
 
         // Create track artist label
         trackArtist = lv_label_create(screen);
@@ -159,36 +160,31 @@ public:
         lv_obj_set_width(trackArtist, 160);
         lv_label_set_text(trackArtist, "Artist Name - Long Text to Test the Long Mode");
         lv_label_set_long_mode(trackArtist, LV_LABEL_LONG_SCROLL_CIRCULAR);
+        lv_obj_move_foreground(trackArtist);
 
 
 
     /* MIDDLE */
         // Create play icon
-        playIcon = lv_label_create(screen);
-        lv_obj_align(playIcon, LV_ALIGN_CENTER, 0, 0);
-        lv_obj_set_style_text_color(playIcon, TEXT_COLOR, LV_PART_MAIN);
-        lv_obj_set_style_text_font(playIcon, BIG_ICON_FONT, LV_PART_MAIN);
-        lv_label_set_text(playIcon, LV_SYMBOL_PLAY);
-        lv_obj_add_flag(playIcon, LV_OBJ_FLAG_CLICKABLE);
-        lv_obj_add_event_cb(playIcon, OnPlayIconClick, LV_EVENT_CLICKED, this);
+        playIcon = new IconButton(screen);
+        playIcon->SetStyle(60, BIG_ICON_FONT);
+        playIcon->SetIcon(LV_SYMBOL_PLAY);
+        playIcon->SetCallback(OnPlayIconClick, this);
+        playIcon->Align(LV_ALIGN_CENTER, 0, 0);
 
         // Create previous icon
-        prevIcon = lv_label_create(screen);
-        lv_obj_align(prevIcon, LV_ALIGN_CENTER, -60, 0);
-        lv_obj_set_style_text_color(prevIcon, TEXT_COLOR, LV_PART_MAIN);
-        lv_obj_set_style_text_font(prevIcon, SMALL_ICON_FONT, LV_PART_MAIN);
-        lv_label_set_text(prevIcon, LV_SYMBOL_PREV);
-        lv_obj_add_flag(prevIcon, LV_OBJ_FLAG_CLICKABLE);
-        lv_obj_add_event_cb(prevIcon, OnPrevIconClick, LV_EVENT_CLICKED, this);
+        prevIcon = new IconButton(screen);
+        prevIcon->SetStyle(50, SMALL_ICON_FONT);
+        prevIcon->SetIcon(LV_SYMBOL_PREV);
+        prevIcon->SetCallback(OnPrevIconClick, this);
+        prevIcon->Align(LV_ALIGN_CENTER, -60, 0);
 
         // Create next icon
-        nextIcon = lv_label_create(screen);
-        lv_obj_align(nextIcon, LV_ALIGN_CENTER, 60, 0);
-        lv_obj_set_style_text_color(nextIcon, TEXT_COLOR, LV_PART_MAIN);
-        lv_obj_set_style_text_font(nextIcon, SMALL_ICON_FONT, LV_PART_MAIN);
-        lv_label_set_text(nextIcon, LV_SYMBOL_NEXT);
-        lv_obj_add_flag(nextIcon, LV_OBJ_FLAG_CLICKABLE);
-        lv_obj_add_event_cb(nextIcon, OnNextIconClick, LV_EVENT_CLICKED, this);
+        nextIcon = new IconButton(screen);
+        nextIcon->SetStyle(50, SMALL_ICON_FONT);
+        nextIcon->SetIcon(LV_SYMBOL_NEXT);
+        nextIcon->SetCallback(OnNextIconClick, this);
+        nextIcon->Align(LV_ALIGN_CENTER, 60, 0);
 
 
         // Create track samplerate label
@@ -198,6 +194,7 @@ public:
         lv_obj_set_style_text_font(trackSamplerate, LABEL_FONT, LV_PART_MAIN);
         lv_obj_set_style_text_align(trackSamplerate, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
         lv_label_set_text(trackSamplerate, "44.1 kHz / 16 bit");
+        lv_obj_move_foreground(trackSamplerate);
 
         // Create track seek label
         trackSeek = lv_label_create(screen);
@@ -206,26 +203,23 @@ public:
         lv_obj_set_style_text_font(trackSeek, LABEL_FONT, LV_PART_MAIN);
         lv_obj_set_style_text_align(trackSeek, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
         lv_label_set_text(trackSeek, "0:00 / 3:45");
+        lv_obj_move_foreground(trackSeek);
 
 
     /* BOTTOM */
         // Create repeat icon
-        repeatIcon = lv_label_create(screen);
-        lv_obj_align(repeatIcon, LV_ALIGN_CENTER, -60, 80);
-        lv_obj_set_style_text_color(repeatIcon, TEXT_COLOR, LV_PART_MAIN);
-        lv_obj_set_style_text_font(repeatIcon, SMALL_ICON_FONT, LV_PART_MAIN);
-        lv_label_set_text(repeatIcon, LV_SYMBOL_REFRESH);
-        lv_obj_add_flag(repeatIcon, LV_OBJ_FLAG_CLICKABLE);
-        lv_obj_add_event_cb(repeatIcon, OnRepeatIconClick, LV_EVENT_CLICKED, this);
+        repeatIcon = new IconButton(screen);
+        repeatIcon->SetStyle(50, SMALL_ICON_FONT);
+        repeatIcon->SetIcon(LV_SYMBOL_REFRESH);
+        repeatIcon->SetCallback(OnRepeatIconClick, this);
+        repeatIcon->Align(LV_ALIGN_CENTER, -60, 80);
 
         // Create shuffle icon
-        shuffleIcon = lv_label_create(screen);
-        lv_obj_align(shuffleIcon, LV_ALIGN_CENTER, 60, 80);
-        lv_obj_set_style_text_color(shuffleIcon, TEXT_COLOR, LV_PART_MAIN);
-        lv_obj_set_style_text_font(shuffleIcon, SMALL_ICON_FONT, LV_PART_MAIN);
-        lv_label_set_text(shuffleIcon, LV_SYMBOL_SHUFFLE);
-        lv_obj_add_flag(shuffleIcon, LV_OBJ_FLAG_CLICKABLE);
-        lv_obj_add_event_cb(shuffleIcon, OnShuffleIconClick, LV_EVENT_CLICKED, this);
+        shuffleIcon = new IconButton(screen);
+        shuffleIcon->SetStyle(50, SMALL_ICON_FONT);
+        shuffleIcon->SetIcon(LV_SYMBOL_SHUFFLE);
+        shuffleIcon->SetCallback(OnShuffleIconClick, this);
+        shuffleIcon->Align(LV_ALIGN_CENTER, 60, 80);
 
         // Create player icon (service/format icon)
         playerIcon = lv_label_create(screen);
@@ -243,6 +237,26 @@ public:
         if (popup) {
             delete popup;
             popup = nullptr;
+        }
+        if (playIcon) {
+            delete playIcon;
+            playIcon = nullptr;
+        }
+        if (prevIcon) {
+            delete prevIcon;
+            prevIcon = nullptr;
+        }
+        if (nextIcon) {
+            delete nextIcon;
+            nextIcon = nullptr;
+        }
+        if (repeatIcon) {
+            delete repeatIcon;
+            repeatIcon = nullptr;
+        }
+        if (shuffleIcon) {
+            delete shuffleIcon;
+            shuffleIcon = nullptr;
         }
         if (this->screen) {
             lv_obj_del(this->screen);
@@ -345,27 +359,21 @@ public:
         if(this->playIcon == nullptr)
             return;
         if(isPlaying)
-            lv_label_set_text(this->playIcon, LV_SYMBOL_PLAY);
+            playIcon->SetIcon(LV_SYMBOL_PLAY);
         else if(isPaused)
-            lv_label_set_text(this->playIcon, LV_SYMBOL_PAUSE);
+            playIcon->SetIcon(LV_SYMBOL_PAUSE);
         else if(isStopped)
-            lv_label_set_text(this->playIcon, LV_SYMBOL_STOP);
+            playIcon->SetIcon(LV_SYMBOL_STOP);
     }
     void SetRepeatIconState(bool enabled){
         if(this->repeatIcon == nullptr)
             return;
-        if(enabled)
-            lv_obj_set_style_text_color(this->repeatIcon, TEXT_COLOR, LV_PART_MAIN);
-        else
-            lv_obj_set_style_text_color(this->repeatIcon, TEXT_COLOR, LV_PART_MAIN);
+        this->repeatIcon->SetIconColor(enabled ? accentColor : TEXT_COLOR);
     }
     void SetShuffleIconState(bool enabled){
         if(this->shuffleIcon == nullptr)
             return;
-        if(enabled)
-            lv_obj_clear_state(this->shuffleIcon, LV_STATE_DISABLED);
-        else
-            lv_obj_add_state(this->shuffleIcon, LV_STATE_DISABLED);
+        this->shuffleIcon->SetIconColor(enabled ? accentColor : TEXT_COLOR);
     }
 
     // Accent Color
@@ -380,6 +388,18 @@ public:
 
         if(this->playerIcon != nullptr)
             lv_obj_set_style_text_color(this->playerIcon, color, LV_PART_MAIN);
+
+        // Icon pressed color
+        if(this->playIcon != nullptr)
+            this->playIcon->SetButtonPressedColor(color);
+        if(this->prevIcon != nullptr)
+            this->prevIcon->SetButtonPressedColor(color);
+        if(this->nextIcon != nullptr)
+            this->nextIcon->SetButtonPressedColor(color);
+        if(this->repeatIcon != nullptr)
+            this->repeatIcon->SetButtonPressedColor(color);
+        if(this->shuffleIcon != nullptr)
+            this->shuffleIcon->SetButtonPressedColor(color);
     }
 
 };
