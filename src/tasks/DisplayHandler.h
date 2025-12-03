@@ -46,6 +46,7 @@ private:
     static void EncoderEvent(lv_indev_t *indev, lv_indev_data_t *data);
 
     void TestGUI(void);
+    void TestPopup(void);
 
 public:
     DisplayHandler();

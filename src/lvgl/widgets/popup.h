@@ -15,7 +15,6 @@ private:
     bool timeout_enabled    = false;
 
     TickType_t timeout_ms   = 0;
-    TickType_t show_time    = 0;
     lv_timer_t *timeout_timer = nullptr;
 
     lv_obj_t *popup         = nullptr;

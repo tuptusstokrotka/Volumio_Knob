@@ -11,9 +11,10 @@ void setup() {
     ConfigManager::getInstance().begin(ssid, pass, ip);
 
     display = new DisplayHandler();
-    wifi = new WiFiHandler(ssid, pass);
-
     display->RunTask();
+
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    wifi = new WiFiHandler(ssid, pass, display);
 }
 
 void loop() {

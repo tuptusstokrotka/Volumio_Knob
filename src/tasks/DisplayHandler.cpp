@@ -140,6 +140,7 @@ void DisplayHandler::TaskEntry(void* param) {
 
     while (true) {
         // instance->TestGUI();
+        // instance->TestPopup();
 
         if(xSemaphoreTake(instance->semaphore, 10) == pdTRUE){
             lv_timer_handler();
@@ -147,45 +148,6 @@ void DisplayHandler::TaskEntry(void* param) {
         }
         vTaskDelay(1000 / DISPLAY_FPS);
 
-    }
-}
-
-void DisplayHandler::TestGUI(void){
-    static int arcValue = 10;
-    static int maxValue = 20;
-    static TickType_t last_tick = xTaskGetTickCount();
-    TickType_t now = xTaskGetTickCount();
-
-    if(now - last_tick >= 1000 && now > 2000){
-        last_tick = now;
-
-        dashboard->SetArcValue(arcValue, maxValue);
-        dashboard->SetTrackSeek(arcValue, maxValue);
-
-        if(arcValue < maxValue / 4){
-            dashboard->SetAccentColor(SPOTIFY_GREEN);
-        } else if(arcValue < maxValue / 2){
-            dashboard->SetAccentColor(YOUTUBE_RED);
-        } else if(arcValue < maxValue * 3 / 4){
-            dashboard->SetAccentColor(TIDAL_BLUE);
-        } else {
-            dashboard->SetAccentColor(ACCENT_COLOR);
-        }
-
-        dashboard->SetShuffleIconState(arcValue < maxValue/2);
-        dashboard->SetRepeatIconState(arcValue > maxValue/2);
-
-        dashboard->SetStatus(arcValue < maxValue/3, arcValue < maxValue/3*2, arcValue < maxValue/3*3);
-        dashboard->SetBatteryValue(map(arcValue, 0, maxValue, 0, 100));
-
-        if(arcValue == 5)
-            ShowPopup("Popup 3s", "This is a popup that will show for 3 seconds", 3000);
-        if(arcValue == 12)
-            ShowPopup("Popup Hard", "This is a popup that will stay until dismissed");
-        if(arcValue == maxValue-1)
-            HidePopup();
-
-        ++arcValue %= maxValue;
     }
 }
 
