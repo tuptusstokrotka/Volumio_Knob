@@ -1,5 +1,5 @@
 #include "WiFiHandler.h"
-#include "NotificationManager.h"
+#include "../notify/NotificationManager.h"
 
 WiFiHandler::WiFiHandler(std::string ssid, std::string password) : ssid(ssid), password(password) {
     // Start always as STA mode

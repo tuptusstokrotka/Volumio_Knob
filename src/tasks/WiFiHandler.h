@@ -14,7 +14,6 @@
 #include "wifi_config.h"
 #include "volumio/volumio.h"
 #include "webserver/webserver.h"
-#include "NotificationManager.h"
 
 class WiFiHandler {
 private:

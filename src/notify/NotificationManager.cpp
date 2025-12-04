@@ -1,6 +1,4 @@
 #include "NotificationManager.h"
-#include "dev_tools.h"
-#include <stdlib.h>
 
 NotificationManager* NotificationManager::instance = nullptr;
 

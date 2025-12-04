@@ -1,6 +1,5 @@
 #include "DisplayHandler.h"
 
-
 void DisplayHandler::TestGUI(void){
     static int arcValue = 10; // Start value
     static int maxValue = 20; // Max value

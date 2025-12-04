@@ -13,7 +13,8 @@
 #include "lv_conf.h"                // LVGL Config
 #include <lvgl.h>                   // LVGL Library
 #include "lvgl/dashboard.h"         // LVGL Screen
-#include "NotificationManager.h"    // Notification system
+
+#include "../notify/NotificationManager.h"
 
 class DisplayHandler {
 private:

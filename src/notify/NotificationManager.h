@@ -7,6 +7,8 @@
 #include "freertos/queue.h"
 #include <string>
 #include <functional>
+#include <stdlib.h>
+#include "dev_tools.h"
 
 
 struct NotificationEvent {

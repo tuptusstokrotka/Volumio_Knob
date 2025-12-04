@@ -1,5 +1,5 @@
 #include "Volumio.h"
-#include "tasks/NotificationManager.h"
+#include "../notify/NotificationManager.h"
 
 Volumio::Volumio(std::string &ip) : ip(&ip) { }
 Volumio::~Volumio(){ }

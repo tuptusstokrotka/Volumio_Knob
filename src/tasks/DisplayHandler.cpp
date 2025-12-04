@@ -1,6 +1,7 @@
 #include "DisplayHandler.h"
 #include "dev_tools.h"
 #include "../lvgl/styles/styles.h"
+#include "../notify/NotificationManager.h"
 
 DisplayHandler::DisplayHandler(){
     // Display
