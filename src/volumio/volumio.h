@@ -24,6 +24,7 @@ private:
     std::string *ip;
     std::string Response = std::string("");
     bool isConnected = false;
+    bool wasConnected = false;  // Track previous state for notifications
     bool isPlaying = false;
 
     inline bool VolumioStatus(void) { return isConnected; }

@@ -1,9 +1,29 @@
 #include "Volumio.h"
+#include "tasks/NotificationManager.h"
 
 Volumio::Volumio(std::string &ip) : ip(&ip) { }
 Volumio::~Volumio(){ }
 
 void Volumio::Update(void){
+    // Post notifications on connection state changes
+    if (!wasConnected && isConnected) {
+        // Just connected
+        NotificationManager::getInstance().postNotification(
+            "Volumio",
+            "Connected",
+            5000
+        );
+    } else if (wasConnected && !isConnected) {
+        // Connection lost
+        NotificationManager::getInstance().postNotification(
+            "Volumio",
+            "Connection lost",
+            5000
+        );
+    }
+
+    wasConnected = isConnected;
+
     if (WiFi.status() != WL_CONNECTED) {
         isConnected = false;
         return;
@@ -55,10 +75,10 @@ void Volumio::SendCommand(std::string command){
     int httpCode = http.GET();
 
     if (httpCode > 0 && httpCode == HTTP_CODE_OK) {
-        VOLUMIO_DEBUG_PRINTLN("[VOLUMIO] Command sent successfully: " + command);
+        VOLUMIO_DEBUG_PRINTLN("[VOLUMIO] Command sent successfully: " << command);
     }
     else {
-        VOLUMIO_DEBUG_PRINTLN("[VOLUMIO] Command failed: " + command);
+        VOLUMIO_DEBUG_PRINTLN("[VOLUMIO] Command failed: " << command);
     }
     http.end();
 }

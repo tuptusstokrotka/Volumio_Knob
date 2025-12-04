@@ -79,20 +79,23 @@
 </head>
 <body>
     <div class="container">
-        <h2>Network Configuration</h2>
         <form id="network-form">
+            <h2>Network Configuration</h2>
             <input type="text" name="ssid" placeholder="SSID" id="ssid" required>
             <input type="password" name="pass" placeholder="Password" id="pass" required>
+
+            <h2>Volumio Configuration</h2>
             <input type="text" name="ip" placeholder="IP Address" id="ip" required pattern="^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$">
             <p id="status"></p>
+
             <button type="submit">Save</button>
         </form>
         <h2>Over the Air Update</h2>
-        <a href="http://volumioknob/update" target="_blank">
+        <a href="/update" target="_blank">
             <button type="button">Update</button>
         </a>
 
-    </div> 
+    </div>
 
     <script>
         // Fetch SSID and IP from ESP when page loads

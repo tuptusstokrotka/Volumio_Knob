@@ -8,13 +8,14 @@ void setup() {
     std::string pass = STA_PASS;
     std::string ip = VOLUMIO_IP;
 
-    ConfigManager::getInstance().begin(ssid, pass, ip);
+    // ConfigManager::getInstance().begin(ssid, pass, ip);
 
     display = new DisplayHandler();
     display->RunTask();
 
     vTaskDelay(1000 / portTICK_PERIOD_MS);
-    wifi = new WiFiHandler(ssid, pass, display);
+    wifi = new WiFiHandler(ssid, pass);
+    wifi->RunTask();
 }
 
 void loop() {

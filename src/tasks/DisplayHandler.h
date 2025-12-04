@@ -13,6 +13,7 @@
 #include "lv_conf.h"                // LVGL Config
 #include <lvgl.h>                   // LVGL Library
 #include "lvgl/dashboard.h"         // LVGL Screen
+#include "NotificationManager.h"    // Notification system
 
 class DisplayHandler {
 private:
@@ -44,6 +45,11 @@ private:
      * @brief LVGL encoder input device read callback
      */
     static void EncoderEvent(lv_indev_t *indev, lv_indev_data_t *data);
+
+    /**
+     * @brief NotificationManager handler - show popup
+     */
+    void handleNotification(const NotificationEvent& event);
 
     void TestGUI(void);
     void TestPopup(void);

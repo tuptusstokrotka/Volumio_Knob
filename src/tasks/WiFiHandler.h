@@ -14,7 +14,7 @@
 #include "wifi_config.h"
 #include "volumio/volumio.h"
 #include "webserver/webserver.h"
-
+#include "NotificationManager.h"
 
 class WiFiHandler {
 private:
@@ -27,16 +27,25 @@ private:
     std::string ssid        = "";
     std::string password    = "";
 
+    /**
+     * @brief FreeRTOS task entry point
+     * @param param pointer to the WiFiHandler instance
+     */
+    static void TaskEntry(void* param);
+
 public:
     WiFiHandler(std::string ssid, std::string password);
     ~WiFiHandler();
 
-    bool isConnected() const { return connected; }
-    void SwitchMode(WiFiMode_t mode);
-
     void setOnStart(std::function<void()> callback);
     void setOnProgress(std::function<void(size_t, size_t)> callback);
     void setOnEnd(std::function<void(bool)> callback);
+
+    void RunTask(void);
+    void Update(); // Call this periodically to handle DNS and connection status
+
+    bool isConnected() const { return connected; }
+    void SwitchMode(WiFiMode_t mode);
 };
 
 #endif // WIFI_HANDLER_H

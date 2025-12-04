@@ -1,5 +1,4 @@
 #include "DisplayHandler.h"
-#include "esp_heap_caps.h"
 #include "dev_tools.h"
 #include "../lvgl/styles/styles.h"
 
@@ -44,6 +43,13 @@ DisplayHandler::DisplayHandler(){
     lv_indev_set_user_data(encoder_indev, this);
 
     semaphore = xSemaphoreCreateMutex();
+
+    // Subscribe to notifications
+    NotificationManager::getInstance().subscribe(
+        [this](const NotificationEvent& event) {
+            this->handleNotification(event);
+        }
+    );
 }
 
 void DisplayHandler::TouchEvent(lv_indev_t *indev, lv_indev_data_t *data) {
@@ -144,6 +150,7 @@ void DisplayHandler::TaskEntry(void* param) {
 
         if(xSemaphoreTake(instance->semaphore, 10) == pdTRUE){
             lv_timer_handler();
+            NotificationManager::getInstance().processNotifications();
             xSemaphoreGive(instance->semaphore);
         }
         vTaskDelay(1000 / DISPLAY_FPS);
@@ -161,4 +168,8 @@ void DisplayHandler::HidePopup(void) {
     if (dashboard != nullptr) {
         dashboard->HidePopup();
     }
+}
+
+void DisplayHandler::handleNotification(const NotificationEvent& event) {
+    ShowPopup(event.title.c_str(), event.content.c_str(), pdMS_TO_TICKS(event.duration_ms));
 }
