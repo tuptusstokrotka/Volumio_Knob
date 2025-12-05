@@ -67,6 +67,8 @@ private:
         if (dashboard == nullptr) return;
 
         int arcValue = lv_arc_get_value(dashboard->arc);
+        VolumioCommand cmd = {VolumioCommandType::SEEK, arcValue};
+        CommandQueue::getInstance().postCommand(cmd);
         DEBUG_PRINTLN("[Dashboard] Arc touched - Seek to: " << arcValue);
     }
 
@@ -74,6 +76,8 @@ private:
         Dashboard * dashboard = static_cast<Dashboard*>(lv_event_get_user_data(e));
         if (dashboard == nullptr) return;
 
+        VolumioCommand cmd = {VolumioCommandType::TOGGLE, 0};
+        CommandQueue::getInstance().postCommand(cmd);
         DEBUG_PRINTLN("[Dashboard] Play icon clicked");
     }
 
@@ -81,6 +85,8 @@ private:
         Dashboard * dashboard = static_cast<Dashboard*>(lv_event_get_user_data(e));
         if (dashboard == nullptr) return;
 
+        VolumioCommand cmd = {VolumioCommandType::NEXT, 0};
+        CommandQueue::getInstance().postCommand(cmd);
         DEBUG_PRINTLN("[Dashboard] Next icon clicked");
     }
 
@@ -88,13 +94,17 @@ private:
         Dashboard * dashboard = static_cast<Dashboard*>(lv_event_get_user_data(e));
         if (dashboard == nullptr) return;
 
+        VolumioCommand cmd = {VolumioCommandType::PREV, 0};
+        CommandQueue::getInstance().postCommand(cmd);
         DEBUG_PRINTLN("[Dashboard] Prev icon clicked");
     }
 
     static void OnRepeatIconClick(lv_event_t * e) {
         Dashboard * dashboard = static_cast<Dashboard*>(lv_event_get_user_data(e));
         if (dashboard == nullptr) return;
-
+        //TODO get the current state from volumio and toggle
+        VolumioCommand cmd = {VolumioCommandType::REPEAT, 0};
+        CommandQueue::getInstance().postCommand(cmd);
         DEBUG_PRINTLN("[Dashboard] Repeat icon clicked");
     }
 
@@ -102,6 +112,9 @@ private:
         Dashboard * dashboard = static_cast<Dashboard*>(lv_event_get_user_data(e));
         if (dashboard == nullptr) return;
 
+        //TODO get the current state from volumio and toggle
+        VolumioCommand cmd = {VolumioCommandType::RANDOM, 0};
+        CommandQueue::getInstance().postCommand(cmd);
         DEBUG_PRINTLN("[Dashboard] Shuffle icon clicked");
     }
 
@@ -275,6 +288,8 @@ public:
         std::string Title = "Volume";
         std::string Icon = (volumeDiff > 0) ? LV_SYMBOL_VOLUME_MAX : LV_SYMBOL_VOLUME_MID;
         popup->Show(Title, Icon, 1000);
+
+        // TODO Send a IR command
     }
 
     // Popup

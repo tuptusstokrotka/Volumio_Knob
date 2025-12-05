@@ -138,7 +138,7 @@ void DisplayHandler::RunTask(void){
                             "DisplayTask",  // Task name
                             8192,           // Stack depth
                             this,           // Task parameters - pointer to this instance
-                            3,              // Task priority (HIGH - UI responsiveness)
+                            3,              // Task priority
                             NULL,           // Task handle
                             0);             // Core ID (Core 0 - Fast Core)
 }

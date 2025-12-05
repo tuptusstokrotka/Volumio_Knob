@@ -9,9 +9,8 @@
 #define VOLUMIO_CMD_TOGGLE          "toggle"
 #define VOLUMIO_CMD_PREV            "prev"
 #define VOLUMIO_CMD_NEXT            "next"
-#define VOLUMIO_CMD_RANDOM(value)   "random&value="  + std::to_string(value)
-#define VOLUMIO_CMD_REPEAT(value)   "repeat&value="  + std::to_string(value)
+#define VOLUMIO_CMD_RANDOM          "random" // No value = toggle
+#define VOLUMIO_CMD_REPEAT          "repeat" // No value = toggle
 #define VOLUMIO_CMD_SEEK(value)     "seek&position=" + std::to_string(value)
-#define VOLUMIO_CMD_VOLUME(value)   "volume&volume=" + std::to_string(value)
 
 #endif // VOLUMIO_CMD_H
