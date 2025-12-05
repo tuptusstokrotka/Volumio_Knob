@@ -5,9 +5,11 @@
 #include "styles/styles.h"
 #include "widgets/popup.h"
 #include "widgets/icon_button.h"
+#include "../notify/CommandQueue.h"
 #include <string>
 
 class Dashboard {
+private:
     lv_color_t accentColor = ACCENT_COLOR;
 
     // Screen instance
@@ -205,7 +207,7 @@ public:
         // Create repeat icon
         repeatIcon = new IconButton(screen);
         repeatIcon->SetStyle(45, SMALL_ICON_FONT);
-        repeatIcon->SetIcon(LV_SYMBOL_REFRESH);
+        repeatIcon->SetIcon(LV_SYMBOL_LOOP);
         repeatIcon->SetCallback(OnRepeatIconClick, this);
         repeatIcon->Align(LV_ALIGN_CENTER, -60, 80);
 

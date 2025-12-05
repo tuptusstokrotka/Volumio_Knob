@@ -1,7 +1,7 @@
 #include "Volumio.h"
 #include "../notify/NotificationManager.h"
 
-Volumio::Volumio(std::string &ip) : ip(&ip) { }
+Volumio::Volumio(std::string ip) : ip(ip) { }
 Volumio::~Volumio(){ }
 
 void Volumio::Update(void){
@@ -30,7 +30,7 @@ void Volumio::Update(void){
     }
 
     HTTPClient http;
-    std::string volumioURL = "http://" + *ip + ":3000/api/v1/getState";
+    std::string volumioURL = "http://" + ip + ":3000/api/v1/getState";
     http.begin(volumioURL.c_str());
     int httpCode = http.GET();
 
@@ -70,7 +70,7 @@ void Volumio::SendCommand(std::string command){
         return;
 
     HTTPClient http;
-    std::string volumioURL = "http://" + *ip + "/api/v1/commands/?cmd=" + command;
+    std::string volumioURL = "http://" + ip + "/api/v1/commands/?cmd=" + command;
     http.begin(volumioURL.c_str());
     int httpCode = http.GET();
 

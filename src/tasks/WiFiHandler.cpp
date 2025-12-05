@@ -1,31 +1,16 @@
 #include "WiFiHandler.h"
-#include "../notify/NotificationManager.h"
 
-WiFiHandler::WiFiHandler(std::string ssid, std::string password) : ssid(ssid), password(password) {
-    // Start always as STA mode
-    WiFi.mode(WIFI_STA);
-    WiFi.begin(ssid.c_str(), password.c_str());
+WiFiHandler::WiFiHandler() {
+    #if USE_PREFERENCES == true
+        Preferences preferences;
+        preferences.begin("my-app", false);
+        ssid      = preferences.getString("ssid", STA_SSID);
+        password  = preferences.getString("pass", STA_PASS);
+        volumioIP = preferences.getString("ip", VOLUMIO_IP);
+        preferences.end();
+    #endif
 
-    // Wait for connection with timeout (30 seconds)
-    unsigned long startTime = millis();
-    const unsigned long timeout = 30000; // 30 seconds
-
-    while (WiFi.status() != WL_CONNECTED && (millis() - startTime) < timeout) {
-        vTaskDelay(500);
-    }
-
-    if (WiFi.status() == WL_CONNECTED) {
-        connected = true;
-        DEBUG_PRINTLN("[WiFi] Connected to STA: " << ssid << " (" << WiFi.localIP().toString().c_str() << ")");
-        NotificationManager::getInstance().postNotification(
-            "Connected",
-            ssid,
-            5000
-        );
-    } else {
-        connected = false;
-        DEBUG_PRINTLN("[WiFi] Failed to connect to STA, timeout reached");
-    }
+    StartSTA();
 
     // Initialize DNS server (will be started only in AP mode)
     dns = new DNSServer();
@@ -49,6 +34,23 @@ WiFiHandler::WiFiHandler(std::string ssid, std::string password) : ssid(ssid), p
         ElegantOTA.begin(server);
     #endif
 
+    ElegantOTA.onStart(
+        [this]() {
+            NotificationManager::getInstance().postNotification( "Updating", "Starting...", 0 );
+        }
+    );
+    ElegantOTA.onProgress(
+        [this](size_t current, size_t final) {
+            std::string progress = std::to_string(current/1000) + " / " + std::to_string(final/1000) + " KB";
+            NotificationManager::getInstance().postNotification( "Updating", progress.c_str(), 0 );
+        }
+    );
+    ElegantOTA.onEnd(
+        [this](bool success) {
+            NotificationManager::getInstance().postNotification( "Updating", success ? "Finished" : "Failed", 5000 );
+        }
+    );
+
     // Setup web server callbacks
     IPAddress localIP = connected ? WiFi.localIP() : IPAddress(192, 168, 4, 1); // Default AP IP if not connected
     webServerCallbacks(*server, localIP);
@@ -56,9 +58,16 @@ WiFiHandler::WiFiHandler(std::string ssid, std::string password) : ssid(ssid), p
     // Start web server
     server->begin();
     DEBUG_PRINTLN("[WebServer] Started on port 80");
+
+    // Initialize Volumio
+    volumio = new Volumio(ConfigManager::getInstance().getIp());
 }
 
 WiFiHandler::~WiFiHandler() {
+    if (volumio) {
+        delete volumio;
+        volumio = nullptr;
+    }
     if (server) {
         server->end();
         delete server;
@@ -92,19 +101,59 @@ void WiFiHandler::TaskEntry(void* param) {
     }
 }
 
-// Set callbacks from main.cpp
-void WiFiHandler::setOnStart(std::function<void()> callback) {
-    ElegantOTA.onStart(callback);
+void WiFiHandler::StartSTA(TickType_t timeout) {
+    WiFi.mode(WIFI_STA);
+    WiFi.begin(ssid, password);
+    connected = false;
+
+    TickType_t startTime = xTaskGetTickCount();
+    const TickType_t timeoutTicks = (timeout == 0) ? portMAX_DELAY : pdMS_TO_TICKS(timeout);
+
+    while (WiFi.status() != WL_CONNECTED && (xTaskGetTickCount() - startTime) < timeout) {
+        vTaskDelay(500);
+    }
+
+    if (WiFi.status() != WL_CONNECTED){
+        DEBUG_PRINTLN("[WiFi] Failed to connect to STA, timeout reached");
+        return;
+    }
+
+    connected = true;
+    DEBUG_PRINTLN("[WiFi] Connected to STA: " << ssid << " (" << WiFi.localIP().toString().c_str() << ")");
+    NotificationManager::getInstance().postNotification(
+        "Connected",
+        (ssid + "\n" + WiFi.localIP().toString()).c_str(),
+        5000
+    );
 }
 
-void WiFiHandler::setOnProgress(std::function<void(size_t, size_t)> callback) {
-    ElegantOTA.onProgress(callback);
-}
+void WiFiHandler::StartAP(void) {
+    WiFi.mode(WIFI_AP);
+    WiFi.softAP(AP_SSID, AP_PASS);
+    vTaskDelay(500); // Give AP time to start
 
-void WiFiHandler::setOnEnd(std::function<void(bool)> callback) {
-    ElegantOTA.onEnd(callback);
-}
+    IPAddress apIP = WiFi.softAPIP();
+    DEBUG_PRINTLN("[WiFi] AP Started: " << AP_SSID);
+    DEBUG_PRINTLN("[WiFi] AP IP Address: " << apIP.toString());
 
+    // Start DNS server for captive portal
+    if (dns) {
+        dns->start(53, "*", apIP);
+        DEBUG_PRINTLN("[DNS] Started for captive portal");
+    }
+
+    // Update web server callbacks with AP IP
+    webServerCallbacks(*server, apIP);
+    connected = true;
+
+    // Post notification: "Configuration, MDNS\nAddressIP" (no timeout)
+    std::string apContent = std::string(DNS_NAME) + "\n" + apIP.toString().c_str();
+    NotificationManager::getInstance().postNotification(
+        "Configuration",
+        apContent,
+        0
+    );
+}
 
 void WiFiHandler::Update() {
     // Process DNS server requests (needed for captive portal in AP mode)
@@ -125,7 +174,7 @@ void WiFiHandler::Update() {
                 // Post notification: "Connected, Wifi SSID" for 5 seconds
                 NotificationManager::getInstance().postNotification(
                     "Connected",
-                    ssid,
+                    ssid.c_str(),
                     5000
                 );
             } else {
@@ -158,66 +207,10 @@ void WiFiHandler::SwitchMode(WiFiMode_t newMode) {
     vTaskDelay(100);
 
     // Set new mode
-    this->mode = newMode;
-    WiFi.mode(newMode);
-
-    if (newMode == WIFI_STA) {
-        // Connect to STA
-        WiFi.begin(ssid.c_str(), password.c_str());
-
-        // Wait for connection with timeout (30 seconds)
-        unsigned long startTime = millis();
-        const unsigned long timeout = 30000;
-
-        while (WiFi.status() != WL_CONNECTED && (millis() - startTime) < timeout) {
-            vTaskDelay(500);
-        }
-
-        if (WiFi.status() == WL_CONNECTED) {
-            connected = true;
-            DEBUG_PRINTLN("[WiFi] Connected to STA: " << ssid);
-            DEBUG_PRINTLN("[WiFi] IP Address: " << WiFi.localIP().toString());
-
-            // Update web server callbacks with new IP
-            webServerCallbacks(*server, WiFi.localIP());
-
-            // Post notification: "Connected, Wifi SSID" for 5 seconds
-            NotificationManager::getInstance().postNotification(
-                "Connected",
-                ssid,
-                5000
-            );
-        } else {
-            connected = false;
-            DEBUG_PRINTLN("[WiFi] Failed to connect to STA");
-        }
-    } else if (newMode == WIFI_AP || newMode == WIFI_AP_STA) {
-        // Start AP mode
-        WiFi.softAP(AP_SSID, AP_PASS);
-        vTaskDelay(500); // Give AP time to start
-
-        IPAddress apIP = WiFi.softAPIP();
-        DEBUG_PRINTLN("[WiFi] AP Started: " << AP_SSID);
-        DEBUG_PRINTLN("[WiFi] AP IP Address: " << apIP.toString());
-
-        // Start DNS server for captive portal
-        if (dns) {
-            dns->start(53, "*", apIP);
-            DEBUG_PRINTLN("[DNS] Started for captive portal");
-        }
-
-        // Update web server callbacks with AP IP
-        webServerCallbacks(*server, apIP);
-
-        // In AP mode, we're always "connected" (AP is up)
-        connected = true;
-
-        // Post notification: "Configuration, MDNS\nAddressIP" (no timeout)
-        std::string apContent = std::string(DNS_NAME) + "\n" + apIP.toString().c_str();
-        NotificationManager::getInstance().postNotification(
-            "Configuration",
-            apContent,
-            0  // 0 = no timeout (persistent)
-        );
+    mode = (mode == WIFI_STA) ? WIFI_AP : WIFI_STA;
+    if (mode == WIFI_STA) {
+        StartSTA();
+    } else {
+        StartAP();
     }
 }

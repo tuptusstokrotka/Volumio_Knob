@@ -63,6 +63,10 @@ void DisplayHandler::TouchEvent(lv_indev_t *indev, lv_indev_data_t *data) {
     instance->touch.readPos();
     FT3267::TouchPoint_t point = instance->touch.getTouchPointBuffer();
 
+    #if TOUCH_VERBOSE == true
+    DEBUG_PRINTLN("[Touch] Touch num: " << point.touch_num << ", X: " << point.x << ", Y: " << point.y);
+    #endif
+
     if (point.touch_num > 0 && point.x >= 0 && point.y >= 0) {
         data->state = LV_INDEV_STATE_PRESSED;
         data->point.x = point.x;

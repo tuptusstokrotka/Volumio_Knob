@@ -80,7 +80,7 @@ public:
 
         // Create title label
         this->title_label = lv_label_create(this->popup);
-        lv_obj_align(this->title_label, LV_ALIGN_CENTER, 0, -15);
+        lv_obj_align(this->title_label, LV_ALIGN_CENTER, 0, -25);
         lv_obj_set_style_text_align(this->title_label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
         lv_obj_set_style_text_color(this->title_label, POPUP_TEXT_COLOR, LV_PART_MAIN);
         lv_obj_set_style_text_font(this->title_label, POPUP_TITLE_FONT, LV_PART_MAIN);

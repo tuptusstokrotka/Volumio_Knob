@@ -21,18 +21,20 @@
 
 class Volumio {
 private:
-    std::string *ip;
+    std::string ip;
     std::string Response = std::string("");
     bool isConnected = false;
-    bool wasConnected = false;  // Track previous state for notifications
+    bool wasConnected = false;
     bool isPlaying = false;
 
     inline bool VolumioStatus(void) { return isConnected; }
     inline bool CheckResponse(void) { return Response != std::string(""); }
 
 public:
-    Volumio(std::string& ip);
+    Volumio(std::string ip);
     ~Volumio();
+
+    void SetIP(std::string ip) { this->ip = ip; }
 
     void Update(void);
     void ParseResponse(Info* trackdata);

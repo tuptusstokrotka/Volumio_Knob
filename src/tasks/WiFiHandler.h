@@ -11,20 +11,31 @@
 #include <ElegantOTA.h>
 #include <functional>
 
+#include "dev_tools.h"
+#include <Preferences.h>
 #include "wifi_config.h"
-#include "volumio/volumio.h"
 #include "webserver/webserver.h"
+#include "volumio/volumio.h"
+#include "../notify/NotificationManager.h"
+#include "../notify/CommandQueue.h"
 
 class WiFiHandler {
 private:
     AsyncWebServer* server  = nullptr;
     DNSServer* dns          = nullptr;
 
+    // Config
+    String ssid             = STA_SSID;     // Use arduino's String because of preferences
+    String password         = STA_PASS;
+    String volumioIP        = VOLUMIO_IP;
+
+    // WiFi
     WiFiMode_t mode         = WIFI_STA;
     bool connected          = false;
 
-    std::string ssid        = "";
-    std::string password    = "";
+    // Volumio
+    Volumio* volumio        = nullptr;
+    Info currentData;
 
     /**
      * @brief FreeRTOS task entry point
@@ -33,18 +44,12 @@ private:
     static void TaskEntry(void* param);
 
 public:
-    WiFiHandler(std::string ssid, std::string password);
+    WiFiHandler();
     ~WiFiHandler();
 
-    void setOnStart(std::function<void()> callback);
-    void setOnProgress(std::function<void(size_t, size_t)> callback);
-    void setOnEnd(std::function<void(bool)> callback);
-
     void RunTask(void);
-    void Update(); // Call this periodically to handle DNS and connection status
-
-    bool isConnected() const { return connected; }
-    void SwitchMode(WiFiMode_t mode);
+    void Update();
+    void ToggleMode();
 };
 
 #endif // WIFI_HANDLER_H
