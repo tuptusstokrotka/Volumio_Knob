@@ -312,6 +312,12 @@ public:
         UpdateArc(value);
     }
 
+    void HideBatteryIcon(){
+        if(this->batteryIcon == nullptr)
+            return;
+        lv_obj_add_flag(this->batteryIcon, LV_OBJ_FLAG_HIDDEN);
+    }
+
     void SetBatteryValue(int value){
         if(this->batteryIcon == nullptr)
             return;

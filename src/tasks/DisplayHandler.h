@@ -9,6 +9,7 @@
 #include "drivers/GC9A01.h"         // LCD Driver
 #include "drivers/FT3267.h"         // Touch Driver
 #include "../board/Encoder.h"
+#include "Adafruit_MAX1704X.h"
 
 #include "lv_conf.h"                // LVGL Config
 #include <lvgl.h>                   // LVGL Library
@@ -21,6 +22,7 @@ private:
     GC9A01_Driver lcd;
     FT3267::TP_FT3267 touch;
     Encoder encoder;
+    Adafruit_MAX17048* lipo = nullptr;
 
     SemaphoreHandle_t semaphore;
 
@@ -46,6 +48,11 @@ private:
      * @brief LVGL encoder input device read callback
      */
     static void EncoderEvent(lv_indev_t *indev, lv_indev_data_t *data);
+
+    /**
+     * @brief LVGL battery input device read callback
+     */
+    static void BatteryEvent(lv_indev_t *indev, lv_indev_data_t *data);
 
     /**
      * @brief NotificationManager handler - show popup

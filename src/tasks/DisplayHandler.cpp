@@ -15,6 +15,16 @@ DisplayHandler::DisplayHandler(){
     gpio_set_direction(BUTTON_PIN, GPIO_MODE_INPUT);
     gpio_set_pull_mode(BUTTON_PIN, GPIO_PULLUP_ONLY);
 
+    // Battery
+    Wire1.begin(SDA, SCL);
+    vTaskDelay(pdMS_TO_TICKS(10));
+    lipo = new Adafruit_MAX17048();
+    if(!lipo->begin(&Wire1)) {
+        delete lipo;
+        lipo = nullptr;
+        DEBUG_PRINTLN("[Battery] Failed to initialize MAX17048");
+    }
+
     // LVGL setup
     draw_buf = (lv_color_t*)malloc(DRAW_BUF_SIZE/BUF_DIVIDER);
     if(draw_buf == nullptr) {
@@ -42,6 +52,12 @@ DisplayHandler::DisplayHandler(){
     lv_indev_set_type(encoder_indev, LV_INDEV_TYPE_ENCODER);
     lv_indev_set_read_cb(encoder_indev, EncoderEvent);
     lv_indev_set_user_data(encoder_indev, this);
+
+    // Setup LVGL battery
+    lv_indev_t* battery_indev = lv_indev_create();
+    lv_indev_set_type(battery_indev, LV_INDEV_TYPE_NONE);
+    lv_indev_set_read_cb(battery_indev, BatteryEvent);
+    lv_indev_set_user_data(battery_indev, this);
 
     semaphore = xSemaphoreCreateMutex();
 
@@ -104,6 +120,20 @@ void DisplayHandler::EncoderEvent(lv_indev_t *indev, lv_indev_data_t *data) {
     } else {
         data->state = LV_INDEV_STATE_RELEASED;
     }
+}
+
+void DisplayHandler::BatteryEvent(lv_indev_t *indev, lv_indev_data_t *data) {
+    DisplayHandler* instance = static_cast<DisplayHandler*>(lv_indev_get_user_data(indev));
+    if(instance == nullptr) {
+        return;
+    }
+
+    if(instance->lipo == nullptr) {
+        instance->dashboard->HideBatteryIcon();
+        return;
+    }
+
+    instance->dashboard->SetBatteryValue((int)instance->lipo->cellPercent());
 }
 
 DisplayHandler::~DisplayHandler(){
