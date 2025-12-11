@@ -5,29 +5,27 @@ Volumio::Volumio(std::string ip) : ip(ip) { }
 Volumio::~Volumio(){ }
 
 void Volumio::Update(void){
-    // Post notifications on connection state changes
-    if (!wasConnected && isConnected) {
-        // Just connected
-        NotificationManager::getInstance().postNotification(
-            "Volumio",
-            "Connected",
-            5000
-        );
-    } else if (wasConnected && !isConnected) {
-        // Connection lost
-        NotificationManager::getInstance().postNotification(
-            "Volumio",
-            "Connection lost",
-            5000
-        );
-    }
-
-    wasConnected = isConnected;
-
     if (WiFi.status() != WL_CONNECTED) {
-        isConnected = false;
+        connected = false;
         return;
     }
+
+    if (wasConnected != connected) {
+        if (connected) {
+            NotificationManager::getInstance().postNotification(
+                "Volumio",
+                "Connected",
+                5000
+            );
+        } else {
+            NotificationManager::getInstance().postNotification(
+                "Volumio",
+                "Connection lost",
+                5000
+            );
+        }
+    }
+    wasConnected = connected;
 
     HTTPClient http;
     std::string volumioURL = "http://" + ip + ":3000/api/v1/getState";
@@ -37,23 +35,21 @@ void Volumio::Update(void){
     if (httpCode > 0 && httpCode == HTTP_CODE_OK) {
         Response = std::string(http.getString().c_str());
         VOLUMIO_DEBUG_PRINTLN("[VOLUMIO] Update success");
-        isConnected = true;
+        connected = true;
     }
     else{
         Response = std::string("");
         VOLUMIO_DEBUG_PRINTLN("[VOLUMIO] Update failed");
-        isConnected = false;
+        connected = false;
     }
     http.end();
 }
 
 void Volumio::ParseResponse(Info *trackdata){
-    StaticJsonDocument<1024> doc;
+    JsonDocument doc;
     deserializeJson(doc, Response);
 
     trackdata->status        = doc["status"].as<std::string>();
-    (trackdata->status == "play") ? isPlaying = true : isPlaying = false;
-
     trackdata->title         = doc["title"].as<std::string>();
     trackdata->artist        = doc["artist"].as<std::string>();
     trackdata->samplerate    = doc["samplerate"].as<std::string>();
@@ -66,7 +62,7 @@ void Volumio::ParseResponse(Info *trackdata){
 }
 
 void Volumio::SendCommand(std::string command){
-    if (WiFi.status() != WL_CONNECTED || VolumioStatus() == false)
+    if (WiFi.status() != WL_CONNECTED || isConnected() == false)
         return;
 
     HTTPClient http;

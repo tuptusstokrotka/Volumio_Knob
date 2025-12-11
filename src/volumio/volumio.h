@@ -23,17 +23,16 @@ class Volumio {
 private:
     std::string ip;
     std::string Response = std::string("");
-    bool isConnected = false;
+    bool connected = false;
     bool wasConnected = false;
-    bool isPlaying = false;
 
-    inline bool VolumioStatus(void) { return isConnected; }
     inline bool CheckResponse(void) { return Response != std::string(""); }
 
 public:
     Volumio(std::string ip);
     ~Volumio();
 
+    inline bool isConnected(void) { return connected; }
     void SetIP(std::string ip) { this->ip = ip; }
 
     void Update(void);

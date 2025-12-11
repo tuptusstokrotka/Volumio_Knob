@@ -1,14 +1,16 @@
 #include "WiFiHandler.h"
 
 WiFiHandler::WiFiHandler() {
-    #if USE_PREFERENCES == true
-        Preferences preferences;
-        preferences.begin("my-app", false);
-        ssid      = preferences.getString("ssid", STA_SSID);
-        password  = preferences.getString("pass", STA_PASS);
-        volumioIP = preferences.getString("ip", VOLUMIO_IP);
-        preferences.end();
+    Preferences preferences;
+    preferences.begin("my-app", false);
+    #if RESET_PREFERENCES == true
+        preferences.clear();
+        DEBUG_PRINTLN("[Preferences] NVS cleared");
     #endif
+    ssid      = preferences.getString("ssid", STA_SSID);
+    password  = preferences.getString("pass", STA_PASS);
+    volumioIP = preferences.getString("ip", VOLUMIO_IP);
+    preferences.end();
 
     StartSTA();
 
@@ -52,7 +54,7 @@ WiFiHandler::WiFiHandler() {
     );
 
     // Setup web server callbacks
-    IPAddress localIP = connected ? WiFi.localIP() : IPAddress(192, 168, 4, 1); // Default AP IP if not connected
+    IPAddress localIP = connected ? WiFi.localIP() : WiFi.softAPIP(); // Default AP IP if not connected
     webServerCallbacks(*server, localIP);
 
     // Start web server
@@ -60,7 +62,8 @@ WiFiHandler::WiFiHandler() {
     DEBUG_PRINTLN("[WebServer] Started on port 80");
 
     // Initialize Volumio
-    volumio = new Volumio(ConfigManager::getInstance().getIp());
+    std::string ipStr = std::string(volumioIP.c_str());
+    volumio = new Volumio(ipStr);
 }
 
 WiFiHandler::~WiFiHandler() {
@@ -87,7 +90,7 @@ void WiFiHandler::RunTask(void){
                             "WiFiTask",     // Task name
                             4096,           // Stack depth
                             this,           // Task parameters - pointer to this instance
-                            2,              // Task priority (HIGH - UI responsiveness)
+                            2,              // Task priority
                             NULL,           // Task handle
                             1);             // Core ID (Core 0 - Fast Core)
 }
@@ -97,8 +100,9 @@ void WiFiHandler::TaskEntry(void* param) {
 
     while (true) {
         instance->Update();
-        vTaskDelay(1000 / 10);
+        vTaskDelay(pdMS_TO_TICKS(200));
     }
+    vTaskDelete(NULL);
 }
 
 void WiFiHandler::StartSTA(TickType_t timeout) {
@@ -119,10 +123,11 @@ void WiFiHandler::StartSTA(TickType_t timeout) {
     }
 
     connected = true;
-    DEBUG_PRINTLN("[WiFi] Connected to STA: " << ssid << " (" << WiFi.localIP().toString().c_str() << ")");
+    DEBUG_PRINTLN("[WiFi] Connected to STA: " << ssid.c_str() << " (" << WiFi.localIP().toString().c_str() << ")");
+    std::string notifyContent = std::string(ssid.c_str()) + "\n" + WiFi.localIP().toString().c_str();
     NotificationManager::getInstance().postNotification(
         "Connected",
-        (ssid + "\n" + WiFi.localIP().toString()).c_str(),
+        notifyContent,
         5000
     );
 }
@@ -172,11 +177,13 @@ void WiFiHandler::Update() {
                 DEBUG_PRINTLN("[WiFi] IP Address: " << WiFi.localIP().toString());
 
                 // Post notification: "Connected, Wifi SSID" for 5 seconds
+                std::string notifyContent = std::string(ssid.c_str()) + "\n" + WiFi.localIP().toString().c_str();
                 NotificationManager::getInstance().postNotification(
                     "Connected",
-                    ssid.c_str(),
+                    notifyContent,
                     5000
                 );
+                lastReconnectAttempt = 0;  // Reset reconnect timer
             } else {
                 DEBUG_PRINTLN("[WiFi] Disconnected from STA");
 
@@ -186,16 +193,88 @@ void WiFiHandler::Update() {
                     "Connection lost",
                     5000
                 );
+                lastReconnectAttempt = xTaskGetTickCount();  // Start reconnect timer
+            }
+        }
+
+        // Auto-reconnect if disconnected (retry every 5 seconds)
+        if (!connected) {
+            TickType_t now = xTaskGetTickCount();
+            if (lastReconnectAttempt == 0 || (now - lastReconnectAttempt) >= RECONNECT_INTERVAL) {
+                DEBUG_PRINTLN("[WiFi] Attempting to reconnect...");
+                StartSTA(30000);  // 30 second timeout
+                lastReconnectAttempt = now;
             }
         }
     }
+
+    // Process Volumio commands from queue
+    volumio->Update();
+    processVolumioCommands();
+
+    // // Update Volumio if connected and initialized
+    // if (volumio != nullptr && connected) {
+    //     volumio->ParseResponse(&currentData);
+    //     processVolumioStateChanges();
+    // }
 }
 
+void WiFiHandler::processVolumioStateChanges(void) {
+    // // Detect track changes (title or artist changed)
+    // bool trackChanged = (currentTrackData.title != previousTrackData.title) ||
+    //                     (currentTrackData.artist != previousTrackData.artist);
 
-void WiFiHandler::SwitchMode(WiFiMode_t newMode) {
-    DEBUG_PRINTLN("[WiFi] Switching mode from " << (mode == WIFI_STA ? "STA" : "AP") <<
-                  " to " << (newMode == WIFI_STA ? "STA" : "AP"));
+    // if (trackChanged && !currentTrackData.title.empty()) {
+    //     std::string trackInfo = currentTrackData.title;
+    //     if (!currentTrackData.artist.empty()) {
+    //         trackInfo += "\n" + currentTrackData.artist;
+    //     }
+    // }
 
+    // // Detect status changes (play/pause)
+    // bool statusChanged = (currentTrackData.status != previousTrackData.status);
+    // if (statusChanged && !currentTrackData.status.empty()) {
+    //     std::string statusText = (currentTrackData.status == "play") ? "Playing" : "Paused";
+    // }
+}
+
+void WiFiHandler::processVolumioCommands(void) {
+    VolumioCommand cmd;
+    while (CommandQueue::getInstance().getNextCommand(cmd)) {
+        std::string commandStr;
+
+        // Convert command type to Volumio HTTP API string
+        switch (cmd.type) {
+            case VolumioCommandType::PLAY:
+                commandStr = VOLUMIO_CMD_PLAY;
+                break;
+            case VolumioCommandType::PAUSE:
+                commandStr = VOLUMIO_CMD_PAUSE;
+                break;
+            case VolumioCommandType::TOGGLE:
+                commandStr = VOLUMIO_CMD_TOGGLE;
+                break;
+            case VolumioCommandType::NEXT:
+                commandStr = VOLUMIO_CMD_NEXT;
+                break;
+            case VolumioCommandType::PREV:
+                commandStr = VOLUMIO_CMD_PREV;
+                break;
+            case VolumioCommandType::SEEK:
+                commandStr = VOLUMIO_CMD_SEEK(cmd.value);
+                break;
+            case VolumioCommandType::RANDOM:
+                commandStr = VOLUMIO_CMD_RANDOM;
+                break;
+            case VolumioCommandType::REPEAT:
+                commandStr = VOLUMIO_CMD_REPEAT;
+                break;
+        }
+        volumio->SendCommand(commandStr);
+    }
+}
+
+void WiFiHandler::ToggleMode() {
     // Stop DNS server if running
     if (dns && (mode == WIFI_AP || mode == WIFI_AP_STA)) {
         dns->stop();

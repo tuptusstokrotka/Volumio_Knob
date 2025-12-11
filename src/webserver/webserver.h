@@ -3,8 +3,9 @@
 #include <ESPAsyncWebServer.h>
 #include <IPAddress.h>
 #include "build/html.h"
-// #include <ArduinoJson.h>
-
+#include <ArduinoJson.h>
+#include <Preferences.h>
+#include "wifi_config.h"
 
 inline void webServerCallbacks(AsyncWebServer& server, const IPAddress& localIP){
     const String IP_URL = "http://" + localIP.toString();
@@ -27,49 +28,57 @@ inline void webServerCallbacks(AsyncWebServer& server, const IPAddress& localIP)
     server.on("/chat",                  [](AsyncWebServerRequest *request)          { request->send(404); });                      // No stop asking WhatsApp, there is no internet connection
     server.on("/startpage",             [IP_URL](AsyncWebServerRequest *request)    { request->redirect(IP_URL); });
 
-    // Serve the HTML file
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
         AsyncWebServerResponse *response = request->beginResponse(200, "text/html", (const uint8_t*)html, html_len);
         response->addHeader("Content-Encoding", "gzip");
         request->send(response);
     });
 
-    // server->on("/get", HTTP_GET, [](AsyncWebServerRequest *request) {
-    //     ConfigManager& config = ConfigManager::getInstance();
+    // On page boot Fill the form with the current network configuration
+    server.on("/get", HTTP_GET, [](AsyncWebServerRequest *request) {
+        Preferences preferences;
+        preferences.begin("my-app", false);
+        String ssid      = preferences.getString("ssid", STA_SSID);
+        String volumioIP = preferences.getString("ip", VOLUMIO_IP);
+        preferences.end();
 
-    //     DynamicJsonDocument doc(100);
-    //     doc["ssid"] = config.getSsid();
-    //     doc["ip"] = config.getIp();
+        JsonDocument doc;
+        doc["ssid"] = ssid;
+        doc["ip"]   = volumioIP;
 
-    //     String response;
-    //     serializeJson(doc, response);
-    //     request->send(200, "application/json", response);
-	// });
+        String response;
+        serializeJson(doc, response);
+        request->send(200, "application/json", response);
+	});
 
-    // server->on("/post", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL, [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
-    //     // get posted data and update
+    // get posted data and update the network configuration
+    server.on("/post", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL, [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
 
-    //     String body = "";
-    //     for (size_t i = 0; i < len; i++) {
-    //         body += (char)data[i];  // Convert incoming bytes to String
-    //     }
+        String body = "";
+        for (size_t i = 0; i < len; i++) {
+            body += (char)data[i];  // Convert incoming bytes to String
+        }
 
-    //     DynamicJsonDocument doc(256);
-    //     DeserializationError error = deserializeJson(doc, body);
+        JsonDocument doc;
+        DeserializationError error = deserializeJson(doc, body.c_str());
 
-    //     if (error) {
-    //         request->send(400, "application/json", "{\"status\":\"error\", \"message\":\"Invalid JSON\"}");
-    //         return;
-    //     }
+        if (error) {
+            request->send(400, "application/json", "{\"status\":\"error\", \"message\":\"Invalid JSON\"}");
+            return;
+        }
 
-    //     String ssid     = doc["ssid"].as<String>();
-    //     String password = doc["pass"].as<String>();
-    //     String volumio  = doc["ip"].as<String>();
+        String ssid      = doc["ssid"];
+        String password  = doc["pass"];
+        String volumioIP = doc["ip"];
 
-    //     /* Get and Save new config */
-    //     ConfigManager& config = ConfigManager::getInstance();
-    //     config.save(ssid, password, volumioIP);
+        /* Save new config */
+        Preferences preferences;
+        preferences.begin("my-app", false);
+        preferences.putString("ssid", ssid);
+        preferences.putString("pass", password);
+        preferences.putString("ip", volumioIP);
+        preferences.end();
 
-    //     request->send(200, "application/json", "{\"status\":\"success\"}");
-    // });
+        request->send(200, "application/json", "{\"status\":\"success\"}");
+    });
 }
