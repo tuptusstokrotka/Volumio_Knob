@@ -214,22 +214,55 @@ void BoardHandler::processTrackData(void) {
         return;
     }
 
+    static TickType_t last_update_time = 0;
+    TickType_t now = xTaskGetTickCount();
+
+    if (now - last_update_time < pdMS_TO_TICKS(500)) {
+        return;
+    }
+    last_update_time = now;
+
     Info trackData;
     std::string tempString;
     while (TrackDataQueue::getInstance().getTrackData(trackData)) {
-        dashboard->SetTrackTitle(trackData.title.c_str());
-        tempString = trackData.artist + " - " + trackData.album;
+        tempString = (trackData.title == "null" ? "-" : trackData.title);
+        dashboard->SetTrackTitle(tempString.c_str());
+
+        if(trackData.artist == "null" && trackData.album == "null")
+            tempString = "-";
+        else
+            tempString = (trackData.artist == "null" ? "-" : trackData.artist) + " - " + (trackData.album == "null" ? "-" : trackData.album);
         dashboard->SetTrackArtist(tempString.c_str());
-        tempString = trackData.samplerate + " / " + trackData.bitdepth;
+
+        tempString = (trackData.samplerate == "null" ? "-" : trackData.samplerate) + " / " + (trackData.bitdepth == "null" ? "-" : trackData.bitdepth);
         dashboard->SetTrackSamplerate(tempString.c_str());
 
         dashboard->SetTrackSeek(trackData.seek / 1000, trackData.duration);
 
         dashboard->SetStatus(trackData.status == "play");
+
         dashboard->SetRepeatIconState(trackData.repeat, trackData.repeatSingle);
         dashboard->SetRandomIconState(trackData.random);
 
-        // dashboard->SetPlayerIcon(trackData.trackType.c_str());
-        // dashboard->SetAccentColor(Service2Color(trackData.trackType));
+        if(trackData.trackType == "spotify"){
+            dashboard->SetPlayerIcon("spotify");
+            dashboard->SetAccentColor(SPOTIFY_GREEN);
+        }
+        else if(trackData.trackType == "youtube"){
+            dashboard->SetPlayerIcon("youtube");
+            dashboard->SetAccentColor(YOUTUBE_RED);
+        }
+        else if(trackData.trackType == "tidal"){
+            dashboard->SetPlayerIcon("tidal");
+            dashboard->SetAccentColor(TIDAL_BLUE);
+        }
+        else if(trackData.trackType == "airplay"){
+            dashboard->SetPlayerIcon("airplay");
+            dashboard->SetAccentColor(AIRPLAY_COLOR);
+        }
+        else{
+            dashboard->SetPlayerIcon(LV_SYMBOL_AUDIO);
+            dashboard->SetAccentColor(ACCENT_COLOR);
+        }
     }
 }

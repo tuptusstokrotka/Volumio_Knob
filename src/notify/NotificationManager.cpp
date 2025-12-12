@@ -4,9 +4,6 @@ NotificationManager* NotificationManager::instance = nullptr;
 
 NotificationManager::NotificationManager() {
     eventQueue = xQueueCreate(QUEUE_SIZE, sizeof(NotificationEvent*));
-    if (eventQueue == nullptr) {
-        DEBUG_PRINTLN("[NotificationManager] Failed to create event queue");
-    }
 }
 
 NotificationManager::~NotificationManager() {
@@ -32,8 +29,6 @@ bool NotificationManager::postNotification(const std::string& title, const std::
         return false;
     }
 
-    DEBUG_PRINTLN("[NotificationManager] Posting notification: " << title << " - " << content << " duration: " << duration_ms);
-
     NotificationEvent* eventPtr = new NotificationEvent();
     eventPtr->title = title;
     eventPtr->content = content;
@@ -42,7 +37,6 @@ bool NotificationManager::postNotification(const std::string& title, const std::
     BaseType_t result = xQueueSend(eventQueue, &eventPtr, 0);
 
     if (result != pdTRUE) {
-        DEBUG_PRINTLN("[NotificationManager] Queue full, notification dropped");
         delete eventPtr;
         return false;
     }

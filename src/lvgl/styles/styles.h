@@ -10,7 +10,7 @@
 
     // Colors
     #define BG_COLOR            lv_color_make(0x00, 0x00, 0x00)
-    #define ACCENT_COLOR        lv_color_make(0xFF, 0x00, 0xA0)
+    #define ACCENT_COLOR        lv_color_make(0xFF, 0xA0, 0x00)
     #define TEXT_COLOR          lv_color_make(0xFF, 0xFF, 0xFF)
 
     // Dashboard colors
@@ -21,6 +21,8 @@
     #define SPOTIFY_GREEN       lv_color_make(0x1E, 0xD7, 0x60)
     #define YOUTUBE_RED         lv_color_make(0xFF, 0x00, 0x00)
     #define TIDAL_BLUE          lv_color_make(0x00, 0xF0, 0xFF)
+    #define AIRPLAY_COLOR       lv_color_make(0x48, 0x11, 0xBF)
+
     // Animations
     #define ARC_ANIMATION_ENABLE
     #define ARC_ANIMATION_DURATION 250
