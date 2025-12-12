@@ -171,71 +171,50 @@ void WiFiHandler::Update() {
         bool wasConnected = connected;
         connected = (WiFi.status() == WL_CONNECTED);
 
+        // Popup notification on network state changes
         if (wasConnected != connected) {
             if (connected) {
                 DEBUG_PRINTLN("[WiFi] Reconnected to STA");
                 DEBUG_PRINTLN("[WiFi] IP Address: " << WiFi.localIP().toString());
-
-                // Post notification: "Connected, Wifi SSID" for 5 seconds
                 std::string notifyContent = std::string(ssid.c_str()) + "\n" + WiFi.localIP().toString().c_str();
                 NotificationManager::getInstance().postNotification(
                     "Connected",
                     notifyContent,
                     5000
                 );
-                lastReconnectAttempt = 0;  // Reset reconnect timer
+                lastAttempt = 0;
             } else {
                 DEBUG_PRINTLN("[WiFi] Disconnected from STA");
-
-                // Post notification: "Disconnected" for 5 seconds
                 NotificationManager::getInstance().postNotification(
                     "Disconnected",
                     "Connection lost",
                     5000
                 );
-                lastReconnectAttempt = xTaskGetTickCount();  // Start reconnect timer
+                lastAttempt = xTaskGetTickCount();
             }
         }
 
         // Auto-reconnect if disconnected (retry every 5 seconds)
         if (!connected) {
             TickType_t now = xTaskGetTickCount();
-            if (lastReconnectAttempt == 0 || (now - lastReconnectAttempt) >= RECONNECT_INTERVAL) {
+            if (lastAttempt == 0 || (now - lastAttempt) >= RECONNECT_INTERVAL) {
                 DEBUG_PRINTLN("[WiFi] Attempting to reconnect...");
                 StartSTA(30000);  // 30 second timeout
-                lastReconnectAttempt = now;
+                lastAttempt = now;
             }
         }
     }
 
-    // Process Volumio commands from queue
-    volumio->Update();
-    processVolumioCommands();
+    // Update Volumio if connected and initialized
+    if (volumio != nullptr) {
+        volumio->Update();
 
-    // // Update Volumio if connected and initialized
-    // if (volumio != nullptr && connected) {
-    //     volumio->ParseResponse(&currentData);
-    //     processVolumioStateChanges();
-    // }
-}
+        Info trackData;
+        volumio->ParseResponse(&trackData);
+        TrackDataQueue::getInstance().postTrackData(trackData);
 
-void WiFiHandler::processVolumioStateChanges(void) {
-    // // Detect track changes (title or artist changed)
-    // bool trackChanged = (currentTrackData.title != previousTrackData.title) ||
-    //                     (currentTrackData.artist != previousTrackData.artist);
-
-    // if (trackChanged && !currentTrackData.title.empty()) {
-    //     std::string trackInfo = currentTrackData.title;
-    //     if (!currentTrackData.artist.empty()) {
-    //         trackInfo += "\n" + currentTrackData.artist;
-    //     }
-    // }
-
-    // // Detect status changes (play/pause)
-    // bool statusChanged = (currentTrackData.status != previousTrackData.status);
-    // if (statusChanged && !currentTrackData.status.empty()) {
-    //     std::string statusText = (currentTrackData.status == "play") ? "Playing" : "Paused";
-    // }
+        processVolumioCommands();
+    }
 }
 
 void WiFiHandler::processVolumioCommands(void) {

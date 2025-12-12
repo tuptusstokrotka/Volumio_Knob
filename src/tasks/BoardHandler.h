@@ -16,8 +16,10 @@
 #include "lvgl/dashboard.h"         // LVGL Screen
 
 #include "../notify/NotificationManager.h"
+#include "../notify/TrackDataQueue.h"
+#include "volumio/volumio_trackdata.h"
 
-class DisplayHandler {
+class BoardHandler {
 private:
     GC9A01_Driver lcd;
     FT3267::TP_FT3267 touch;
@@ -59,12 +61,17 @@ private:
      */
     void handleNotification(const NotificationEvent& event);
 
+    /**
+     * @brief Process track data from queue and update dashboard
+     */
+    void processTrackData(void);
+
     void TestGUI(void);
     void TestPopup(void);
 
 public:
-    DisplayHandler();
-    ~DisplayHandler();
+    BoardHandler();
+    ~BoardHandler();
 
     // Setup Task - called from the main program
     void RunTask(void);

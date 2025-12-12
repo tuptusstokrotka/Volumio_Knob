@@ -1,9 +1,9 @@
-#include "DisplayHandler.h"
+#include "BoardHandler.h"
 #include "dev_tools.h"
 #include "../lvgl/styles/styles.h"
 #include "../notify/NotificationManager.h"
 
-DisplayHandler::DisplayHandler(){
+BoardHandler::BoardHandler(){
     // Display
     lcd.init();
     lcd.setRotation(TFT_ROTATION);
@@ -31,12 +31,12 @@ DisplayHandler::DisplayHandler(){
         return;
     }
     lv_init();
-    lv_tick_set_cb(DisplayHandler::my_tick);
+    lv_tick_set_cb(BoardHandler::my_tick);
 
     // Setup LVGL display
     lv_display_t *lvDisplay = lv_display_create(LCD_WIDTH, LCD_HEIGHT);
     lv_display_set_color_format(lvDisplay, LV_COLOR_FORMAT_RGB565);
-    lv_display_set_flush_cb(lvDisplay, DisplayHandler::DisplayFlush);
+    lv_display_set_flush_cb(lvDisplay, BoardHandler::DisplayFlush);
     lv_display_set_user_data(lvDisplay, this);
     lv_display_set_rotation(lvDisplay, TFT_ROTATION);
     lv_display_set_buffers(lvDisplay, draw_buf, NULL, DRAW_BUF_SIZE/BUF_DIVIDER, LV_DISPLAY_RENDER_MODE_PARTIAL);
@@ -69,8 +69,8 @@ DisplayHandler::DisplayHandler(){
     );
 }
 
-void DisplayHandler::TouchEvent(lv_indev_t *indev, lv_indev_data_t *data) {
-    DisplayHandler* instance = static_cast<DisplayHandler*>(lv_indev_get_user_data(indev));
+void BoardHandler::TouchEvent(lv_indev_t *indev, lv_indev_data_t *data) {
+    BoardHandler* instance = static_cast<BoardHandler*>(lv_indev_get_user_data(indev));
     if (instance == nullptr) {
         data->state = LV_INDEV_STATE_RELEASED;
         return;
@@ -92,8 +92,8 @@ void DisplayHandler::TouchEvent(lv_indev_t *indev, lv_indev_data_t *data) {
     }
 }
 
-void DisplayHandler::EncoderEvent(lv_indev_t *indev, lv_indev_data_t *data) {
-    DisplayHandler* instance = static_cast<DisplayHandler*>(lv_indev_get_user_data(indev));
+void BoardHandler::EncoderEvent(lv_indev_t *indev, lv_indev_data_t *data) {
+    BoardHandler* instance = static_cast<BoardHandler*>(lv_indev_get_user_data(indev));
     if (instance == nullptr) {
         data->enc_diff = 0;
         data->state = LV_INDEV_STATE_RELEASED;
@@ -122,8 +122,8 @@ void DisplayHandler::EncoderEvent(lv_indev_t *indev, lv_indev_data_t *data) {
     }
 }
 
-void DisplayHandler::BatteryEvent(lv_indev_t *indev, lv_indev_data_t *data) {
-    DisplayHandler* instance = static_cast<DisplayHandler*>(lv_indev_get_user_data(indev));
+void BoardHandler::BatteryEvent(lv_indev_t *indev, lv_indev_data_t *data) {
+    BoardHandler* instance = static_cast<BoardHandler*>(lv_indev_get_user_data(indev));
     if(instance == nullptr) {
         return;
     }
@@ -136,7 +136,7 @@ void DisplayHandler::BatteryEvent(lv_indev_t *indev, lv_indev_data_t *data) {
     instance->dashboard->SetBatteryValue((int)instance->lipo->cellPercent());
 }
 
-DisplayHandler::~DisplayHandler(){
+BoardHandler::~BoardHandler(){
     if (draw_buf != nullptr) {
         free(draw_buf);
         draw_buf = nullptr;
@@ -145,12 +145,12 @@ DisplayHandler::~DisplayHandler(){
     vTaskDelete(NULL);
 }
 
-uint32_t DisplayHandler::my_tick(void) {
+uint32_t BoardHandler::my_tick(void) {
     return xTaskGetTickCount();
 }
 
-void DisplayHandler::DisplayFlush(lv_display_t *display, const lv_area_t *area, unsigned char *data) {
-    DisplayHandler* instance = static_cast<DisplayHandler*>(lv_display_get_user_data(display));
+void BoardHandler::DisplayFlush(lv_display_t *display, const lv_area_t *area, unsigned char *data) {
+    BoardHandler* instance = static_cast<BoardHandler*>(lv_display_get_user_data(display));
     if (instance == nullptr) return;
 
     uint32_t w = lv_area_get_width(area);
@@ -163,7 +163,7 @@ void DisplayHandler::DisplayFlush(lv_display_t *display, const lv_area_t *area, 
     lv_display_flush_ready(display); /* tell lvgl that flushing is done */
 }
 
-void DisplayHandler::RunTask(void){
+void BoardHandler::RunTask(void){
     xTaskCreatePinnedToCore(TaskEntry,      // Task entry point
                             "DisplayTask",  // Task name
                             8192,           // Stack depth
@@ -173,8 +173,8 @@ void DisplayHandler::RunTask(void){
                             0);             // Core ID (Core 0 - Fast Core)
 }
 
-void DisplayHandler::TaskEntry(void* param) {
-    DisplayHandler* instance = static_cast<DisplayHandler*>(param);
+void BoardHandler::TaskEntry(void* param) {
+    BoardHandler* instance = static_cast<BoardHandler*>(param);
 
     instance->dashboard = new Dashboard();
     lv_scr_load(instance->dashboard->GetScreen());
@@ -186,25 +186,50 @@ void DisplayHandler::TaskEntry(void* param) {
         if(xSemaphoreTake(instance->semaphore, 10) == pdTRUE){
             lv_timer_handler();
             NotificationManager::getInstance().processNotifications();
+            instance->processTrackData();
             xSemaphoreGive(instance->semaphore);
         }
         vTaskDelay(1000 / DISPLAY_FPS);
-
     }
 }
 
-void DisplayHandler::ShowPopup(const char *title, const char *content, TickType_t duration) {
+void BoardHandler::ShowPopup(const char *title, const char *content, TickType_t duration) {
     if (dashboard != nullptr) {
         dashboard->ShowPopup(title, content, duration);
     }
 }
 
-void DisplayHandler::HidePopup(void) {
+void BoardHandler::HidePopup(void) {
     if (dashboard != nullptr) {
         dashboard->HidePopup();
     }
 }
 
-void DisplayHandler::handleNotification(const NotificationEvent& event) {
+void BoardHandler::handleNotification(const NotificationEvent& event) {
     ShowPopup(event.title.c_str(), event.content.c_str(), pdMS_TO_TICKS(event.duration_ms));
+}
+
+void BoardHandler::processTrackData(void) {
+    if (dashboard == nullptr) {
+        return;
+    }
+
+    Info trackData;
+    std::string tempString;
+    while (TrackDataQueue::getInstance().getTrackData(trackData)) {
+        dashboard->SetTrackTitle(trackData.title.c_str());
+        tempString = trackData.artist + " - " + trackData.album;
+        dashboard->SetTrackArtist(tempString.c_str());
+        tempString = trackData.samplerate + " / " + trackData.bitdepth;
+        dashboard->SetTrackSamplerate(tempString.c_str());
+
+        dashboard->SetTrackSeek(trackData.seek / 1000, trackData.duration);
+
+        dashboard->SetStatus(trackData.status == "play");
+        dashboard->SetRepeatIconState(trackData.repeat, trackData.repeatSingle);
+        dashboard->SetRandomIconState(trackData.random);
+
+        // dashboard->SetPlayerIcon(trackData.trackType.c_str());
+        // dashboard->SetAccentColor(Service2Color(trackData.trackType));
+    }
 }

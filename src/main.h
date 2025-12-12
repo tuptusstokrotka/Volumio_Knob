@@ -3,8 +3,8 @@
 #include "freertos/FreeRTOS.h"
 
 // Tasks
-#include "tasks/DisplayHandler.h"
+#include "tasks/BoardHandler.h"
 #include "tasks/WiFiHandler.h"
 
-DisplayHandler* display = nullptr;
+BoardHandler* board = nullptr;
 WiFiHandler* wifi = nullptr;

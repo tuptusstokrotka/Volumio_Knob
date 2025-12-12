@@ -52,13 +52,15 @@ void Volumio::ParseResponse(Info *trackdata){
     trackdata->status        = doc["status"].as<std::string>();
     trackdata->title         = doc["title"].as<std::string>();
     trackdata->artist        = doc["artist"].as<std::string>();
+    trackdata->album         = doc["album"].as<std::string>();
+    trackdata->trackType     = doc["trackType"].as<std::string>();
+    trackdata->seek          = doc["seek"];
+    trackdata->duration      = doc["duration"];
     trackdata->samplerate    = doc["samplerate"].as<std::string>();
     trackdata->bitdepth      = doc["bitdepth"].as<std::string>();
-    trackdata->trackType     = doc["trackType"].as<std::string>();
-    trackdata->duration      = doc["duration"];
-    trackdata->seek          = doc["seek"];
-
-    trackdata->elapsedTime   = trackdata->seek / 1000;
+    trackdata->random        = doc["random"].as<bool>();
+    trackdata->repeat        = doc["repeat"].as<bool>();
+    trackdata->repeatSingle  = doc["repeatSingle"].as<bool>();
 }
 
 void Volumio::SendCommand(std::string command){

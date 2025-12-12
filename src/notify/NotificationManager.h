@@ -52,7 +52,7 @@ public:
     bool postNotification(const std::string& title, const std::string& content, TickType_t duration_ms = 5000);
 
     /**
-     * @brief Process pending notifications (call this periodically from DisplayHandler task)
+     * @brief Process pending notifications (call this periodically from BoardHandler task)
      */
     void processNotifications();
 };

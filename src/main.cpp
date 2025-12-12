@@ -4,8 +4,8 @@
 #include "main.h"
 
 void setup() {
-    display = new DisplayHandler();
-    display->RunTask();
+    board = new BoardHandler();
+    board->RunTask();
 
     vTaskDelay(1000 / portTICK_PERIOD_MS);
 

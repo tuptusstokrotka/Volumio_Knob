@@ -18,6 +18,9 @@
 #include "volumio/volumio.h"
 #include "../notify/NotificationManager.h"
 #include "../notify/CommandQueue.h"
+#include "../notify/TrackDataQueue.h"
+
+#define RECONNECT_INTERVAL pdMS_TO_TICKS(5000)  // 5 seconds
 
 class WiFiHandler {
 private:
@@ -32,16 +35,22 @@ private:
     // WiFi
     WiFiMode_t mode         = WIFI_STA;
     bool connected          = false;
+    TickType_t lastAttempt  = 0;  // Track last reconnection attempt
 
     // Volumio
     Volumio* volumio        = nullptr;
-    Info currentData;
 
     /**
      * @brief FreeRTOS task entry point
      * @param param pointer to the WiFiHandler instance
      */
     static void TaskEntry(void* param);
+
+    void StartSTA(TickType_t timeout = 0);
+    void StartAP(void);
+
+    // Process Volumio commands queue
+    void processVolumioCommands(void);
 
 public:
     WiFiHandler();

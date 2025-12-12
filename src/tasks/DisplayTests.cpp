@@ -1,6 +1,6 @@
-#include "DisplayHandler.h"
+#include "BoardHandler.h"
 
-void DisplayHandler::TestGUI(void){
+void BoardHandler::TestGUI(void){
     static int arcValue = 10; // Start value
     static int maxValue = 20; // Max value
 
@@ -24,10 +24,10 @@ void DisplayHandler::TestGUI(void){
     else
         dashboard->SetAccentColor(ACCENT_COLOR);
 
-    dashboard->SetShuffleIconState(arcValue < maxValue/2);
-    dashboard->SetRepeatIconState(arcValue > maxValue/2);
+    dashboard->SetRandomIconState(arcValue < maxValue / 2);
+    dashboard->SetRepeatIconState(arcValue < maxValue / 3, arcValue > maxValue * 2 / 3);
 
-    dashboard->SetStatus(arcValue < maxValue/3, arcValue < maxValue/3*2, arcValue < maxValue/3*3);
+    dashboard->SetStatus(arcValue < maxValue/3 ? true : false);
     dashboard->SetBatteryValue(map(arcValue, 0, maxValue, 0, 100));
 
     if(arcValue == 5)
@@ -38,11 +38,11 @@ void DisplayHandler::TestGUI(void){
         HidePopup();
 }
 
-void DisplayHandler::TestPopup(void){
+void BoardHandler::TestPopup(void){
     const TickType_t popupAnimationDuration = pdMS_TO_TICKS(POPUP_ANIMATION_DURATION);
-    const TickType_t popupShortDuration     = pdMS_TO_TICKS(1000 + 2*popupAnimationDuration);
-    const TickType_t popupLongDuration      = pdMS_TO_TICKS(3000 + 2*popupAnimationDuration); // Long duration to test setting new timer
-    const TickType_t popupInterruptDuration = pdMS_TO_TICKS(100  + 2*popupAnimationDuration); // Really short popup just to test animation interrupts
+    const TickType_t popupShortDuration     = pdMS_TO_TICKS(1000 + 2 * popupAnimationDuration);
+    const TickType_t popupLongDuration      = pdMS_TO_TICKS(3000 + 2 * popupAnimationDuration); // Long duration to test setting new timer
+    const TickType_t popupInterruptDuration = pdMS_TO_TICKS(100  + 2 * popupAnimationDuration); // Really short popup just to test animation interrupts
 
     static int testCase = 0;
     static int step = 0;

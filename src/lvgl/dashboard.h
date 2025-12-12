@@ -16,6 +16,7 @@ private:
     lv_obj_t* screen;
 
     // Screen components
+    bool isArcPressed = false;
     lv_obj_t* arc;
     lv_obj_t* batteryIcon;
 
@@ -65,6 +66,12 @@ private:
     static void OnArcTouch(lv_event_t * e) {
         Dashboard * dashboard = static_cast<Dashboard*>(lv_event_get_user_data(e));
         if (dashboard == nullptr) return;
+        dashboard->isArcPressed = true;
+    }
+    static void OnArcTouchLost(lv_event_t * e) {
+        Dashboard * dashboard = static_cast<Dashboard*>(lv_event_get_user_data(e));
+        if (dashboard == nullptr) return;
+        dashboard->isArcPressed = false;
 
         int arcValue = lv_arc_get_value(dashboard->arc);
         VolumioCommand cmd = {VolumioCommandType::SEEK, arcValue};
@@ -144,7 +151,8 @@ public:
         lv_arc_set_bg_angles(arc, 180+55, 180-55);
         lv_arc_set_mode(arc, LV_ARC_MODE_NORMAL);
         lv_arc_set_range(arc, 0, 100);
-        lv_obj_add_event_cb(arc, OnArcTouch, LV_EVENT_CLICKED, this);
+        lv_obj_add_event_cb(arc, OnArcTouch, LV_EVENT_PRESSING, this);
+        lv_obj_add_event_cb(arc, OnArcTouchLost, LV_EVENT_RELEASED, this);
 
         // Create battery icon
         batteryIcon = lv_label_create(screen);
@@ -161,7 +169,7 @@ public:
         lv_obj_set_style_text_font(trackTitle, TITLE_FONT, LV_PART_MAIN);
         lv_obj_set_style_text_align(trackTitle, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
         lv_obj_set_width(trackTitle, 150);
-        lv_label_set_text(trackTitle, "Track Title - Long Text to Test the Long Mode");
+        lv_label_set_text(trackTitle, "-");
         lv_label_set_long_mode(trackTitle, LV_LABEL_LONG_SCROLL_CIRCULAR);
         lv_obj_move_foreground(trackTitle);
 
@@ -172,7 +180,7 @@ public:
         lv_obj_set_style_text_font(trackArtist, TITLE_FONT, LV_PART_MAIN);
         lv_obj_set_style_text_align(trackArtist, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
         lv_obj_set_width(trackArtist, 160);
-        lv_label_set_text(trackArtist, "Artist Name - Long Text to Test the Long Mode");
+        lv_label_set_text(trackArtist, "-");
         lv_label_set_long_mode(trackArtist, LV_LABEL_LONG_SCROLL_CIRCULAR);
         lv_obj_move_foreground(trackArtist);
 
@@ -204,7 +212,7 @@ public:
         lv_obj_set_style_text_color(trackSamplerate, TEXT_COLOR, LV_PART_MAIN);
         lv_obj_set_style_text_font(trackSamplerate, LABEL_FONT, LV_PART_MAIN);
         lv_obj_set_style_text_align(trackSamplerate, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
-        lv_label_set_text(trackSamplerate, "44.1 kHz / 16 bit");
+        lv_label_set_text(trackSamplerate, "- / -");
         lv_obj_move_foreground(trackSamplerate);
 
         // Create track seek label
@@ -213,7 +221,7 @@ public:
         lv_obj_set_style_text_color(trackSeek, TEXT_COLOR, LV_PART_MAIN);
         lv_obj_set_style_text_font(trackSeek, LABEL_FONT, LV_PART_MAIN);
         lv_obj_set_style_text_align(trackSeek, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
-        lv_label_set_text(trackSeek, "0:00 / 3:45");
+        lv_label_set_text(trackSeek, "0:00 / 0:00");
         lv_obj_move_foreground(trackSeek);
 
     /* BOTTOM */
@@ -278,7 +286,7 @@ public:
     lv_obj_t* GetScreen(void){ return this->screen; }
     lv_obj_t* GetArc(void){ return this->arc; }
 
-    // Volumio event handlers (called from DisplayHandler)
+    // Volumio event handlers (called from BoardHandler)
     void OnVolumeChange(int volumeDiff) {
         DEBUG_PRINTLN("[Dashboard] Volume change: " << (volumeDiff > 0 ? "+" : "") << volumeDiff);
 
@@ -352,26 +360,28 @@ public:
             return;
         lv_label_set_text(this->trackSamplerate, samplerate);
     }
-    void SetTrackSeek(int seek, int duration = 0){
+    void SetTrackSeek(int seek, int duration){
+        if(this->arc == nullptr)
+            return;
         if(this->trackSeek == nullptr)
             return;
 
+        // Update arc
+        if(!this->isArcPressed)
+            lv_arc_set_value(this->arc, seek);
+        lv_arc_set_range(this->arc, 0, duration);
+
+        // Update track seek label
         std::string seek_str;
-        if(duration > 0){
-            int seek_min = seek / 60;
-            int seek_sec = seek % 60;
-            int dur_min = duration / 60;
-            int dur_sec = duration % 60;
-            seek_str = std::to_string(seek_min) + ":" +
-                      (seek_sec < 10 ? "0" : "") + std::to_string(seek_sec) + " / " +
-                      std::to_string(dur_min) + ":" +
-                      (dur_sec < 10 ? "0" : "") + std::to_string(dur_sec);
-        } else {
-            int seek_min = seek / 60;
-            int seek_sec = seek % 60;
-            seek_str = std::to_string(seek_min) + ":" +
-                      (seek_sec < 10 ? "0" : "") + std::to_string(seek_sec);
-        }
+        int seek_min = seek / 60;
+        int seek_sec = seek % 60;
+        int dur_min = duration / 60;
+        int dur_sec = duration % 60;
+        seek_str = std::to_string(seek_min) + ":" +
+                    (seek_sec < 10 ? "0" : "") + std::to_string(seek_sec) + " / " +
+                    std::to_string(dur_min) + ":" +
+                    (dur_sec < 10 ? "0" : "") + std::to_string(dur_sec);
+
         lv_label_set_text(this->trackSeek, seek_str.c_str());
     }
 
@@ -381,25 +391,29 @@ public:
             return;
         lv_label_set_text(this->playerIcon, icon);
     }
-    void SetStatus(bool isPlaying, bool isPaused, bool isStopped){
+    void SetStatus(bool isPlaying){
         if(this->playIcon == nullptr)
             return;
         if(isPlaying)
-            playIcon->SetIcon(LV_SYMBOL_PLAY);
-        else if(isPaused)
             playIcon->SetIcon(LV_SYMBOL_PAUSE);
-        else if(isStopped)
-            playIcon->SetIcon(LV_SYMBOL_STOP);
+        else
+            playIcon->SetIcon(LV_SYMBOL_PLAY);
     }
-    void SetRepeatIconState(bool enabled){
+    void SetRepeatIconState(bool repeat, bool repeatSingle){
         if(this->repeatIcon == nullptr)
             return;
-        this->repeatIcon->SetIconColor(enabled ? accentColor : TEXT_COLOR);
+
+        if(repeatSingle)
+            this->repeatIcon->SetIcon("1");
+        else
+            this->repeatIcon->SetIcon(LV_SYMBOL_LOOP);
+
+        this->repeatIcon->SetIconColor(repeat || repeatSingle ? accentColor : TEXT_COLOR);
     }
-    void SetShuffleIconState(bool enabled){
+    void SetRandomIconState(bool random){
         if(this->shuffleIcon == nullptr)
             return;
-        this->shuffleIcon->SetIconColor(enabled ? accentColor : TEXT_COLOR);
+        this->shuffleIcon->SetIconColor(random ? accentColor : TEXT_COLOR);
     }
 
     // Accent Color
