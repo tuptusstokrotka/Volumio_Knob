@@ -6,7 +6,6 @@
 TrackDataQueue* TrackDataQueue::instance = nullptr;
 
 TrackDataQueue::TrackDataQueue() {
-    // Queue stores pointers to Info (heap-allocated)
     trackDataQueue = xQueueCreate(QUEUE_SIZE, sizeof(Info*));
     if (trackDataQueue == nullptr) {
         DEBUG_PRINTLN("[TrackDataQueue] Failed to create track data queue");
@@ -15,7 +14,6 @@ TrackDataQueue::TrackDataQueue() {
 
 TrackDataQueue::~TrackDataQueue() {
     if (trackDataQueue != nullptr) {
-        // Drain any remaining track data
         Info* infoPtr = nullptr;
         while (xQueueReceive(trackDataQueue, &infoPtr, 0) == pdTRUE) {
             if (infoPtr != nullptr) {
@@ -39,15 +37,14 @@ bool TrackDataQueue::postTrackData(const Info& info) {
         return false;
     }
 
-    // Allocate Info on heap and copy data
     Info* infoPtr = new Info();
-    *infoPtr = info;  // Copy assignment (std::string will be copied properly)
+    *infoPtr = info;
 
     BaseType_t result = xQueueSend(trackDataQueue, &infoPtr, 0);
 
     if (result != pdTRUE) {
         DEBUG_PRINTLN("[TrackDataQueue] Queue full, track data dropped");
-        delete infoPtr;  // Free if queue is full
+        delete infoPtr;
         return false;
     }
 
@@ -71,10 +68,7 @@ bool TrackDataQueue::getTrackData(Info& info) {
         return false;
     }
 
-    // Copy data from heap to output parameter
     info = *infoPtr;
-    
-    // Free the heap-allocated Info
     delete infoPtr;
 
     return true;

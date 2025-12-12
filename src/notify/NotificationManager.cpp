@@ -23,16 +23,6 @@ NotificationManager& NotificationManager::getInstance() {
     return *instance;
 }
 
-NotificationEvent* NotificationManager::createEventCopy(const NotificationEvent& event) {
-    NotificationEvent* copy = new NotificationEvent();
-    if (copy != nullptr) {
-        copy->title = event.title;
-        copy->content = event.content;
-        copy->duration_ms = event.duration_ms;
-    }
-    return copy;
-}
-
 void NotificationManager::subscribe(std::function<void(const NotificationEvent&)> callback) {
     notificationCallback = callback;
 }
@@ -44,16 +34,11 @@ bool NotificationManager::postNotification(const std::string& title, const std::
 
     DEBUG_PRINTLN("[NotificationManager] Posting notification: " << title << " - " << content << " duration: " << duration_ms);
 
-    NotificationEvent event = { title, content, duration_ms };
+    NotificationEvent* eventPtr = new NotificationEvent();
+    eventPtr->title = title;
+    eventPtr->content = content;
+    eventPtr->duration_ms = duration_ms;
 
-    // Create heap-allocated copy for the queue
-    NotificationEvent* eventPtr = createEventCopy(event);
-    if (eventPtr == nullptr) {
-        DEBUG_PRINTLN("[NotificationManager] Failed to allocate event");
-        return false;
-    }
-
-    // Queue the pointer (non-blocking)
     BaseType_t result = xQueueSend(eventQueue, &eventPtr, 0);
 
     if (result != pdTRUE) {
@@ -61,6 +46,7 @@ bool NotificationManager::postNotification(const std::string& title, const std::
         delete eventPtr;
         return false;
     }
+
     return true;
 }
 
@@ -71,13 +57,9 @@ void NotificationManager::processNotifications() {
 
     NotificationEvent* eventPtr = nullptr;
 
-    // Process all pending notifications
     while (xQueueReceive(eventQueue, &eventPtr, 0) == pdTRUE) {
         if (eventPtr != nullptr) {
-            // Call callback with the event
             notificationCallback(*eventPtr);
-
-            // Free the heap-allocated event
             delete eventPtr;
             eventPtr = nullptr;
         }

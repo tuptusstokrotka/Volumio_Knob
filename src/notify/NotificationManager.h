@@ -27,8 +27,6 @@ private:
 
     std::function<void(const NotificationEvent&)> notificationCallback;
 
-    NotificationEvent* createEventCopy(const NotificationEvent& event);
-
 public:
     ~NotificationManager();
 
