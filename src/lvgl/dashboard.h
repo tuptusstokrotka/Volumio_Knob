@@ -296,8 +296,6 @@ public:
         std::string Title = "Volume";
         std::string Icon = (volumeDiff > 0) ? LV_SYMBOL_VOLUME_MAX : LV_SYMBOL_VOLUME_MID;
         popup->Show(Title, Icon, 1000);
-
-        // TODO Send a IR command
     }
 
     // Popup
@@ -365,6 +363,11 @@ public:
             return;
         if(this->trackSeek == nullptr)
             return;
+
+        // Prevent division by zero - and crash
+        if(duration <= 0) {
+            duration = 1;
+        }
 
         // Update arc
         if(!this->isArcPressed)

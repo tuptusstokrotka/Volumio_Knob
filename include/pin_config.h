@@ -10,4 +10,5 @@
 #define ENCODER_A      GPIO_NUM_41
 #define ENCODER_B      GPIO_NUM_40
 
+#define HOLD_PIN       GPIO_NUM_46
 #endif // PIN_CONFIG_H

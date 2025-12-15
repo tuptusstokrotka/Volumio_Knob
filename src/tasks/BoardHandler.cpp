@@ -2,18 +2,23 @@
 #include "dev_tools.h"
 #include "../lvgl/styles/styles.h"
 #include "../notify/NotificationManager.h"
+#include "esp_sleep.h"
+#include "driver/gpio.h"
 
 BoardHandler::BoardHandler(){
-    // Display
-    lcd.init();
-    lcd.setRotation(TFT_ROTATION);
-    touch.init();
-    vTaskDelay(pdMS_TO_TICKS(10));
+    // Power hold after boot
+    gpio_reset_pin(HOLD_PIN);
+    gpio_set_direction(HOLD_PIN, GPIO_MODE_OUTPUT);
+    gpio_set_level(HOLD_PIN, 1);
 
     // Encoder
     gpio_reset_pin(BUTTON_PIN);
     gpio_set_direction(BUTTON_PIN, GPIO_MODE_INPUT);
     gpio_set_pull_mode(BUTTON_PIN, GPIO_PULLUP_ONLY);
+
+    // wakeup source
+    esp_sleep_enable_gpio_wakeup();
+    gpio_wakeup_enable(BUTTON_PIN, GPIO_INTR_NEGEDGE);
 
     // Battery
     Wire1.begin(SDA, SCL);
@@ -24,6 +29,12 @@ BoardHandler::BoardHandler(){
         lipo = nullptr;
         DEBUG_PRINTLN("[Battery] Failed to initialize MAX17048");
     }
+
+    // Display
+    lcd.init();
+    lcd.setRotation(TFT_ROTATION);
+    touch.init();
+    vTaskDelay(pdMS_TO_TICKS(10));
 
     // LVGL setup
     draw_buf = (lv_color_t*)malloc(DRAW_BUF_SIZE/BUF_DIVIDER);
@@ -104,7 +115,14 @@ void BoardHandler::EncoderEvent(lv_indev_t *indev, lv_indev_data_t *data) {
     data->enc_diff = diff;
 
     if (diff != 0 && instance->dashboard != nullptr) {
-        instance->dashboard->OnVolumeChange(diff);
+        if(diff > 0){
+            // instance->rc5->send(RC5_VOLUME_UP);
+            NotificationManager::getInstance().postNotification("Volume", LV_SYMBOL_VOLUME_MAX, 1000);
+        }
+        else{
+            // instance->rc5->send(RC5_VOLUME_DOWN);
+            NotificationManager::getInstance().postNotification("Volume", LV_SYMBOL_VOLUME_MID, 1000);
+        }
     }
 
     #if ENCODER_VERBOSE == true
@@ -115,9 +133,25 @@ void BoardHandler::EncoderEvent(lv_indev_t *indev, lv_indev_data_t *data) {
     }
     #endif
 
+
+    // TODO handle press to toggle play / pause
+    // TODO handle 5x press to toggle STA / APmode
+    static TickType_t button_press_start = 0;
     if (gpio_get_level(BUTTON_PIN) == 0) {
+        if (button_press_start == 0) {
+            button_press_start = xTaskGetTickCount();
+        }
+        else {
+            TickType_t hold_time = xTaskGetTickCount() - button_press_start;
+            if (hold_time >= DEEP_SLEEP_HOLD_TIME) {
+                gpio_set_level(HOLD_PIN, 0);
+                esp_deep_sleep_start();
+            }
+        }
         data->state = LV_INDEV_STATE_PRESSED;
     } else {
+        // Button released, reset timer
+        button_press_start = 0;
         data->state = LV_INDEV_STATE_RELEASED;
     }
 }
@@ -230,8 +264,12 @@ void BoardHandler::processTrackData(void) {
 
         if(trackData.artist == "null" && trackData.album == "null")
             tempString = "-";
+        else if(trackData.artist == "null")
+            tempString = trackData.album;
+        else if(trackData.album == "null")
+            tempString = trackData.artist;
         else
-            tempString = (trackData.artist == "null" ? "-" : trackData.artist) + " - " + (trackData.album == "null" ? "-" : trackData.album);
+            tempString = trackData.artist + " - " + trackData.album;
         dashboard->SetTrackArtist(tempString.c_str());
 
         tempString = (trackData.samplerate == "null" ? "-" : trackData.samplerate) + " / " + (trackData.bitdepth == "null" ? "-" : trackData.bitdepth);

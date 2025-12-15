@@ -19,6 +19,8 @@
 #include "../notify/TrackDataQueue.h"
 #include "volumio/volumio_trackdata.h"
 
+#define DEEP_SLEEP_HOLD_TIME pdMS_TO_TICKS(5000)
+
 class BoardHandler {
 private:
     GC9A01_Driver lcd;
