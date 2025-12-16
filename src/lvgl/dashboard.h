@@ -364,15 +364,15 @@ public:
         if(this->trackSeek == nullptr)
             return;
 
-        // Prevent division by zero - and crash
-        if(duration <= 0) {
-            duration = 1;
-        }
-
         // Update arc
         if(!this->isArcPressed)
             lv_arc_set_value(this->arc, seek);
-        lv_arc_set_range(this->arc, 0, duration);
+
+        // Only change the arc range
+        if(duration <= 0)
+            lv_arc_set_range(this->arc, 0, 1);
+        else
+            lv_arc_set_range(this->arc, 0, duration);
 
         // Update track seek label
         std::string seek_str;

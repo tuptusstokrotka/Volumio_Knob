@@ -5,7 +5,7 @@
     #define BATTERY_FONT        &lv_font_montserrat_18
     #define BIG_ICON_FONT       &lv_font_montserrat_32
     #define SMALL_ICON_FONT     &lv_font_montserrat_24
-    #define TITLE_FONT          &lv_font_montserrat_18
+    #define TITLE_FONT          &lv_font_montserrat_18_latin
     #define LABEL_FONT          &lv_font_montserrat_14
 
     // Colors

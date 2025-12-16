@@ -147,9 +147,21 @@ void BoardHandler::EncoderEvent(lv_indev_t *indev, lv_indev_data_t *data) {
                 gpio_set_level(HOLD_PIN, 0);
                 esp_deep_sleep_start();
             }
+            else if(hold_time >= DEEP_SLEEP_HOLD_TIME - 1000){
+                NotificationManager::getInstance().postNotification("Sleep", "Turn off in\n1 second", 3000);
+            }
+            else if(hold_time >= DEEP_SLEEP_HOLD_TIME - 2000){
+                NotificationManager::getInstance().postNotification("Sleep", "Turn off in\n2 seconds", 3000);
+            }
+            else if(hold_time >= DEEP_SLEEP_HOLD_TIME - 3000){
+                NotificationManager::getInstance().postNotification("Sleep", "Turn off in\n3 seconds", 3000);
+            }
         }
         data->state = LV_INDEV_STATE_PRESSED;
     } else {
+        if(button_press_start != 0){
+            instance->HidePopup();
+        }
         // Button released, reset timer
         button_press_start = 0;
         data->state = LV_INDEV_STATE_RELEASED;
@@ -272,7 +284,15 @@ void BoardHandler::processTrackData(void) {
             tempString = trackData.artist + " - " + trackData.album;
         dashboard->SetTrackArtist(tempString.c_str());
 
-        tempString = (trackData.samplerate == "null" ? "-" : trackData.samplerate) + " / " + (trackData.bitdepth == "null" ? "-" : trackData.bitdepth);
+
+        if(trackData.samplerate == "null" && trackData.bitdepth == "null")
+            tempString = "-";
+        else if(trackData.samplerate == "null")
+            tempString = trackData.bitdepth;
+        else if(trackData.bitdepth == "null")
+            tempString = trackData.samplerate;
+        else
+            tempString = trackData.samplerate + " - " + trackData.bitdepth;
         dashboard->SetTrackSamplerate(tempString.c_str());
 
         dashboard->SetTrackSeek(trackData.seek / 1000, trackData.duration);
