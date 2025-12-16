@@ -133,7 +133,6 @@ void BoardHandler::EncoderEvent(lv_indev_t *indev, lv_indev_data_t *data) {
     }
     #endif
 
-
     // TODO handle press to toggle play / pause
     // TODO handle 5x press to toggle STA / APmode
     static TickType_t button_press_start = 0;
@@ -226,9 +225,6 @@ void BoardHandler::TaskEntry(void* param) {
     lv_scr_load(instance->dashboard->GetScreen());
 
     while (true) {
-        // instance->TestGUI();
-        // instance->TestPopup();
-
         if(xSemaphoreTake(instance->semaphore, 10) == pdTRUE){
             lv_timer_handler();
             NotificationManager::getInstance().processNotifications();
@@ -286,7 +282,7 @@ void BoardHandler::processTrackData(void) {
 
 
         if(trackData.samplerate == "null" && trackData.bitdepth == "null")
-            tempString = "-";
+            tempString = "";
         else if(trackData.samplerate == "null")
             tempString = trackData.bitdepth;
         else if(trackData.bitdepth == "null")
@@ -302,25 +298,12 @@ void BoardHandler::processTrackData(void) {
         dashboard->SetRepeatIconState(trackData.repeat, trackData.repeatSingle);
         dashboard->SetRandomIconState(trackData.random);
 
-        if(trackData.trackType == "spotify"){
-            dashboard->SetPlayerIcon("spotify");
-            dashboard->SetAccentColor(SPOTIFY_GREEN);
+        const Theme* theme = get_theme(trackData.trackType);
+        if(theme == nullptr){
+            theme = &default_theme;
         }
-        else if(trackData.trackType == "youtube"){
-            dashboard->SetPlayerIcon("youtube");
-            dashboard->SetAccentColor(YOUTUBE_RED);
-        }
-        else if(trackData.trackType == "tidal"){
-            dashboard->SetPlayerIcon("tidal");
-            dashboard->SetAccentColor(TIDAL_BLUE);
-        }
-        else if(trackData.trackType == "airplay"){
-            dashboard->SetPlayerIcon("airplay");
-            dashboard->SetAccentColor(AIRPLAY_COLOR);
-        }
-        else{
-            dashboard->SetPlayerIcon(LV_SYMBOL_AUDIO);
-            dashboard->SetAccentColor(ACCENT_COLOR);
-        }
+
+        dashboard->SetPlayerIcon(theme->icon);
+        dashboard->SetAccentColor(theme->color);
     }
 }

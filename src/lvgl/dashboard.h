@@ -3,6 +3,7 @@
 #include "dev_tools.h"
 #include "lvgl.h"
 #include "styles/styles.h"
+#include "styles/themes.h"
 #include "widgets/popup.h"
 #include "widgets/icon_button.h"
 #include "../notify/CommandQueue.h"
@@ -49,7 +50,7 @@ private:
         if (current_value == value)
             return;
 
-        #ifdef ARC_ANIMATION_ENABLE
+        #if ARC_ANIMATION_ENABLE
             lv_anim_t a;
             lv_anim_init(&a);
             lv_anim_set_var(&a, this->arc);
@@ -212,7 +213,7 @@ public:
         lv_obj_set_style_text_color(trackSamplerate, TEXT_COLOR, LV_PART_MAIN);
         lv_obj_set_style_text_font(trackSamplerate, LABEL_FONT, LV_PART_MAIN);
         lv_obj_set_style_text_align(trackSamplerate, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
-        lv_label_set_text(trackSamplerate, "- / -");
+        lv_label_set_text(trackSamplerate, "");
         lv_obj_move_foreground(trackSamplerate);
 
         // Create track seek label
@@ -243,7 +244,7 @@ public:
         playerIcon = lv_label_create(screen);
         lv_obj_align(playerIcon, LV_ALIGN_CENTER, 0, 100);
         lv_obj_set_style_text_color(playerIcon, ACCENT_COLOR, LV_PART_MAIN);
-        lv_obj_set_style_text_font(playerIcon, SMALL_ICON_FONT, LV_PART_MAIN);
+        lv_obj_set_style_text_font(playerIcon, PLAYER_ICONS, LV_PART_MAIN);
         lv_label_set_text(playerIcon, LV_SYMBOL_AUDIO);
 
         // Create popup widget

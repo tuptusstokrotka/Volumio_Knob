@@ -7,6 +7,7 @@
     #define SMALL_ICON_FONT     &lv_font_montserrat_24
     #define TITLE_FONT          &lv_font_montserrat_18_latin
     #define LABEL_FONT          &lv_font_montserrat_14
+    #define PLAYER_ICONS        &lv_icons_fontawesome_24
 
     // Colors
     #define BG_COLOR            lv_color_make(0x00, 0x00, 0x00)
@@ -17,15 +18,9 @@
     #define ARC_KNOB_COLOR      lv_color_make(0xFF, 0xFF, 0xFF)
     #define ARC_BG_COLOR        lv_color_make(0x20, 0x20, 0x20)
 
-    // Services colors
-    #define SPOTIFY_GREEN       lv_color_make(0x1E, 0xD7, 0x60)
-    #define YOUTUBE_RED         lv_color_make(0xFF, 0x00, 0x00)
-    #define TIDAL_BLUE          lv_color_make(0x00, 0xF0, 0xFF)
-    #define AIRPLAY_COLOR       lv_color_make(0x48, 0x11, 0xBF)
-
     // Animations
-    #define ARC_ANIMATION_ENABLE
-    #define ARC_ANIMATION_DURATION 250
+    #define ARC_ANIMATION_ENABLE    1
+    #define ARC_ANIMATION_DURATION  250
 
 
 /* POPUP */

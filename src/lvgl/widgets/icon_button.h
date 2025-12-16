@@ -9,16 +9,6 @@ private:
     lv_obj_t* label;
 
 public:
-    /**
-     * @brief Create an icon button widget
-     * @param parent Parent object (usually screen)
-     * @param icon_text Icon symbol or text (e.g., LV_SYMBOL_PLAY)
-     * @param size Button size (width and height)
-     * @param font Font to use for the icon
-     * @param color Text color
-     * @param callback Event callback function
-     * @param user_data User data to pass to callback
-     */
     IconButton(lv_obj_t* parent) {
         // Button
         button = lv_btn_create(parent);
