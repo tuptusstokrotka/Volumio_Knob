@@ -68,9 +68,6 @@ private:
      */
     void processTrackData(void);
 
-    void TestGUI(void);
-    void TestPopup(void);
-
 public:
     BoardHandler();
     ~BoardHandler();

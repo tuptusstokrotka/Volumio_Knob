@@ -248,6 +248,12 @@ void WiFiHandler::processVolumioCommands(void) {
             case VolumioCommandType::REPEAT:
                 commandStr = VOLUMIO_CMD_REPEAT;
                 break;
+            case VolumioCommandType::VOLUME_UP:
+                commandStr = VOLUMIO_CMD_VOLUME_UP;
+                break;
+            case VolumioCommandType::VOLUME_DOWN:
+                commandStr = VOLUMIO_CMD_VOLUME_DOWN;
+                break;
         }
         volumio->SendCommand(commandStr);
     }

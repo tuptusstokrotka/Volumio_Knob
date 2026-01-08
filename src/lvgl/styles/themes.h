@@ -10,10 +10,14 @@ struct Theme {
     const char* icon;
 };
 
+
+// TODO add themes dynamically
+// Create config via web server
+
 inline const std::unordered_map<std::string_view, Theme> themes = {
-    { "spotify", {lv_color_make(0x1E, 0xD7, 0x60), ICON_FA_SPOTIFY }         },
-    { "youtube", {lv_color_make(0xFF, 0x00, 0x00), ICON_FA_YOUTUBE_PLAY }    },
-    { "airplay", {lv_color_make(0x00, 0x66, 0xCC), ICON_FA_APPLE }           },
+    { "spotify",    { lv_color_make(0x1E, 0xD7, 0x60), ICON_FA_SPOTIFY      } },
+    { "youtube",    { lv_color_make(0xFF, 0x00, 0x00), ICON_FA_YOUTUBE_PLAY } },
+    { "airplay",    { lv_color_make(0x00, 0x66, 0xCC), ICON_FA_APPLE        } },
 };
 
 inline const Theme default_theme = {

@@ -11,7 +11,7 @@
 
     // Colors
     #define BG_COLOR            lv_color_make(0x00, 0x00, 0x00)
-    #define ACCENT_COLOR        lv_color_make(0xFF, 0xA0, 0x00)
+    #define ACCENT_COLOR        lv_color_make(0xFF, 0x80, 0x00)
     #define TEXT_COLOR          lv_color_make(0xFF, 0xFF, 0xFF)
 
     // Dashboard colors

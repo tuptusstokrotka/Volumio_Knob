@@ -287,18 +287,6 @@ public:
     lv_obj_t* GetScreen(void){ return this->screen; }
     lv_obj_t* GetArc(void){ return this->arc; }
 
-    // Volumio event handlers (called from BoardHandler)
-    void OnVolumeChange(int volumeDiff) {
-        DEBUG_PRINTLN("[Dashboard] Volume change: " << (volumeDiff > 0 ? "+" : "") << volumeDiff);
-
-        if (popup == nullptr)
-            return;
-
-        std::string Title = "Volume";
-        std::string Icon = (volumeDiff > 0) ? LV_SYMBOL_VOLUME_MAX : LV_SYMBOL_VOLUME_MID;
-        popup->Show(Title, Icon, 1000);
-    }
-
     // Popup
     void ShowPopup(const char *title, const char *content, TickType_t duration = 0){
         if(this->popup == nullptr)
@@ -325,10 +313,18 @@ public:
         lv_obj_add_flag(this->batteryIcon, LV_OBJ_FLAG_HIDDEN);
     }
 
-    void SetBatteryValue(int value){
+    void SetBatteryValue(int value, float chargeRate){
         if(this->batteryIcon == nullptr)
             return;
         lv_obj_set_style_text_color(this->batteryIcon, TEXT_COLOR, LV_PART_MAIN);
+
+        // Charging
+        if(chargeRate > 0){
+            lv_label_set_text(this->batteryIcon, LV_SYMBOL_CHARGE);
+            return;
+        }
+
+        // Discharging
         if(value >= 80)
             lv_label_set_text(this->batteryIcon, LV_SYMBOL_BATTERY_FULL);
         else if(value >= 60)

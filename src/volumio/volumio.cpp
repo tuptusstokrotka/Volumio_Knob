@@ -23,6 +23,7 @@ void Volumio::Update(void){
                 "Connection lost",
                 5000
             );
+            disconnectTime = xTaskGetTickCount();
         }
     }
     wasConnected = connected;
@@ -43,6 +44,18 @@ void Volumio::Update(void){
         connected = false;
     }
     http.end();
+
+    TickType_t timeNotConnected = xTaskGetTickCount() - disconnectTime;
+    if (!connected && timeNotConnected >= VOLUMIO_DEEP_SLEEP_INTERVAL) {
+        esp_deep_sleep_start();
+    }
+    else if (!connected && timeNotConnected >= (VOLUMIO_DEEP_SLEEP_INTERVAL - 3000) ) {
+        NotificationManager::getInstance().postNotification(
+            "Volumio",
+            "Going to sleep",
+            0
+        );
+    }
 }
 
 void Volumio::ParseResponse(Info *trackdata){

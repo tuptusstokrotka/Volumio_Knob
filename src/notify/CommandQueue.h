@@ -18,7 +18,9 @@ enum class VolumioCommandType {
     PREV,
     SEEK,
     RANDOM,
-    REPEAT
+    REPEAT,
+    VOLUME_UP,
+    VOLUME_DOWN
 };
 
 /**

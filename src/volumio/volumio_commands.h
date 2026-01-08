@@ -12,5 +12,7 @@
 #define VOLUMIO_CMD_RANDOM          "random" // No value = toggle
 #define VOLUMIO_CMD_REPEAT          "repeat" // No value = toggle
 #define VOLUMIO_CMD_SEEK(value)     "seek&position=" + std::to_string(value)
+#define VOLUMIO_CMD_VOLUME_UP       "volume&volume=plus"
+#define VOLUMIO_CMD_VOLUME_DOWN     "volume&volume=minus"
 
 #endif // VOLUMIO_CMD_H

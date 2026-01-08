@@ -19,12 +19,16 @@
     #define VOLUMIO_DEBUG_PRINTLN(s) ;
 #endif
 
+#define VOLUMIO_DEEP_SLEEP_INTERVAL pdMS_TO_TICKS( 5 * 60 * 1000)    // 5 minutes
+
 class Volumio {
 private:
     std::string ip;
     std::string Response = std::string("");
     bool connected = false;
     bool wasConnected = false;
+
+    TickType_t disconnectTime = 0; // Track time of last disconnection
 
     inline bool CheckResponse(void) { return Response != std::string(""); }
 

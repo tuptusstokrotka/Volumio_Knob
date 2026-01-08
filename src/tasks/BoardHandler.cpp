@@ -116,11 +116,13 @@ void BoardHandler::EncoderEvent(lv_indev_t *indev, lv_indev_data_t *data) {
 
     if (diff != 0 && instance->dashboard != nullptr) {
         if(diff > 0){
-            // instance->rc5->send(RC5_VOLUME_UP);
+            VolumioCommand cmd = {VolumioCommandType::VOLUME_UP, 0};
+            CommandQueue::getInstance().postCommand(cmd);
             NotificationManager::getInstance().postNotification("Volume", LV_SYMBOL_VOLUME_MAX, 1000);
         }
         else{
-            // instance->rc5->send(RC5_VOLUME_DOWN);
+            VolumioCommand cmd = {VolumioCommandType::VOLUME_DOWN, 0};
+            CommandQueue::getInstance().postCommand(cmd);
             NotificationManager::getInstance().postNotification("Volume", LV_SYMBOL_VOLUME_MID, 1000);
         }
     }
@@ -158,6 +160,7 @@ void BoardHandler::EncoderEvent(lv_indev_t *indev, lv_indev_data_t *data) {
         }
         data->state = LV_INDEV_STATE_PRESSED;
     } else {
+        // Hide popup when button is released - This (mainly) clears the deep sleep timer notification
         if(button_press_start != 0){
             instance->HidePopup();
         }
@@ -178,7 +181,11 @@ void BoardHandler::BatteryEvent(lv_indev_t *indev, lv_indev_data_t *data) {
         return;
     }
 
-    instance->dashboard->SetBatteryValue((int)instance->lipo->cellPercent());
+    instance->dashboard->SetBatteryValue((int)instance->lipo->cellPercent(), instance->lipo->chargeRate());
+
+    if(instance->lipo->cellPercent() == 15 && instance->lipo->chargeRate() == 0) {
+        NotificationManager::getInstance().postNotification("Low Battery", "Charge device", 5000);
+    }
 }
 
 BoardHandler::~BoardHandler(){
